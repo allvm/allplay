@@ -10,6 +10,7 @@ list(APPEND ALLVM_TEST_DEPENDS
   allready
   alltogether
   bc2allvm
+  bcdbutil
   none
   wllvm-dump
   wllvm-extract

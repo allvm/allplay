@@ -16,6 +16,8 @@ endif()
 
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
+# find_package(Boost 1.60 REQUIRED) # TODO: Version?
+
 set(Python_ADDITIONAL_VERSIONS 2.7)
 include(FindPythonInterp)
 if( NOT PYTHONINTERP_FOUND )
@@ -66,6 +68,9 @@ set(LLVM_LIBRARY_OUTPUT_INTDIR
 
 link_directories(${LLVM_LIBRARY_DIR})
 include_directories(${LLVM_INCLUDE_DIR})
+
+#include_directories(${Boost_INCLUDE_DIR})
+#link_directories(${Boost_LIBRARY_DIRS})
 
 include_directories ("${PROJECT_SOURCE_DIR}/include")
 
