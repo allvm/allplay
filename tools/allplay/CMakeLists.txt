@@ -5,8 +5,8 @@ set(LLVM_LINK_COMPONENTS
   Support
 )
 
-add_llvm_tool(bcdbutil
-  bcdbutil.cpp
+add_llvm_tool(allplay
+  allplay.cpp
 
   CombinedModule.cpp
   FindUses.cpp
@@ -15,6 +15,6 @@ add_llvm_tool(bcdbutil
 
   subcommand-registry.cpp
 )
-target_link_libraries(bcdbutil BCDB liball ResourcePaths)
+target_link_libraries(allplay BCDB liball ResourcePaths)
 
 add_definitions(${LLVM_DEFINITIONS})

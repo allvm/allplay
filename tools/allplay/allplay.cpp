@@ -1,10 +1,10 @@
-//===-- bcdbutil.cpp ------------------------------------------------------===//
+//===-- allplay.cpp -------------------------------------------------------===//
 //
 // Author: Will Dietz (WD), wdietz2@uiuc.edu
 //
 //===----------------------------------------------------------------------===//
 //
-// Utilities for creating and analyzing BCDB's.
+// Collection of experimental utilities on allexe playgrounds
 //
 //===----------------------------------------------------------------------===//
 
@@ -29,7 +29,8 @@ int main(int argc, const char *argv[]) {
   PrettyStackTraceProgram X(argc, argv);
   llvm_shutdown_obj Y; // Call llvm_shutdown() on exit.
 
-  cl::ParseCommandLineOptions(argc, argv, "BCDB Utilities\n\n");
+  cl::ParseCommandLineOptions(argc, argv, "allplay\n\n");
+
 
   ResourcePaths RP = ResourcePaths::getAnchored(argv[0]);
 
@@ -39,7 +40,7 @@ int main(int argc, const char *argv[]) {
       continue;
     if (*SC)
       if (auto C = dispatch(SC)) {
-        ExitOnError("bcdbutil: ")(C(RP));
+        ExitOnError("allplay: ")(C(RP));
         return 0;
       }
   }
