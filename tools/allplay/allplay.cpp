@@ -31,7 +31,6 @@ int main(int argc, const char *argv[]) {
 
   cl::ParseCommandLineOptions(argc, argv, "allplay\n\n");
 
-
   ResourcePaths RP = ResourcePaths::getAnchored(argv[0]);
 
   for (auto *SC : cl::getRegisteredSubcommands()) {
