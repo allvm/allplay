@@ -41,9 +41,9 @@ public:
   auto allexe_begin() const { return Allexes.begin(); }
   auto allexe_end() const { return Allexes.end(); }
   auto allexe_size() const { return Allexes.size(); }
-  auto getAllexes() const { return Allexes; }
+  auto &getAllexes() const { return Allexes; }
 
-  auto getMods() const { return Infos; }
+  auto &getMods() const { return Infos; }
 
   // BCDB() { C.setDiscardValueNames(true); }
 
