@@ -33,11 +33,15 @@ cl::SubCommand FunctionHashes("functionhashes",
 cl::opt<std::string> InputDirectory(cl::Positional, cl::Required,
                                     cl::desc("<input directory to scan>"),
                                     cl::sub(FunctionHashes));
+cl::opt<std::string>
+    WriteGraph("write-graph", cl::Optional,
+               cl::desc("name of file to write graph, does nothing if empty"),
+               cl::init(""), cl::sub(FunctionHashes));
 
 using FunctionHash = FunctionComparator::FunctionHash;
 
 struct FuncDesc {
-  ModuleInfo *Mod;
+  const ModuleInfo *Mod;
   std::string FuncName;
   size_t Insts;
   std::string Source;
@@ -64,7 +68,7 @@ Error functionHash(BCDB &DB) {
   size_t totalInsts = 0;
   std::vector<FuncDesc> Functions;
 
-  for (auto MI : DB.getMods()) {
+  for (auto &MI : DB.getMods()) {
     SMDiagnostic SM;
     LLVMContext C;
     auto M = llvm::parseIRFile(MI.Filename, SM, C);
@@ -132,6 +136,35 @@ Error functionHash(BCDB &DB) {
   errs() << "Ratio: "
          << format("%.4g", double(redundantInstsMaybe) / double(totalInsts))
          << "\n";
+
+  if (!WriteGraph.empty()) {
+    errs() << "Writing FunctionHash Graph...\n";
+
+    StringGraph Graph;
+
+    auto Mods = Functions | ranges::view::transform(&FuncDesc::Mod) | ranges::to_vector | ranges::action::sort | ranges::action::unique;
+
+    for (auto &M: Mods) { Graph.addVertex(M->Filename); }
+
+    auto NamedFunctions = Functions | ranges::view::transform([](auto &F) { return std::pair<const FuncDesc*, std::string> {&F, F.FuncName + "\\n" + F.Source}; }) | ranges::to_vector;
+    auto Hashes = Functions | ranges::view::transform(&FuncDesc::H) | ranges::to_vector | ranges::action::sort | ranges::action::unique;
+   auto StrHashes = Hashes | ranges::view::transform([](auto H) { return Twine(H).str(); }) | ranges::to_vector;
+
+    RANGES_FOR(const auto &H, StrHashes) {
+      Graph.addVertex(H);
+    }
+
+    RANGES_FOR(const auto &NF, NamedFunctions) {
+      Graph.addVertex(NF.second);
+
+      Graph.addEdge(NF.first->Source, NF.second);
+      Graph.addEdge(NF.second, Twine(NF.first->H).str());
+    }
+
+    return Graph.writeGraph(WriteGraph);
+
+    // Module -> (Source: Function)
+  }
 
   return Error::success();
 }
