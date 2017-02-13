@@ -38,6 +38,8 @@ cl::opt<std::string> InputDirectory(cl::Positional, cl::Required,
 cl::opt<std::string> OutputFilename("o", cl::Required,
                                     cl::desc("name of file to write graph"),
                                     cl::sub(Graph));
+cl::opt<bool> UseClusters("cluster", cl::Optional,
+    cl::desc("Emit nodes in cluters"), cl::sub(Graph));
 
 Error graph(BCDB &DB, StringRef Prefix, StringRef GraphFilename) {
 
@@ -110,13 +112,16 @@ Error graph(BCDB &DB, StringRef Prefix, StringRef GraphFilename) {
 
   size_t GIdx = 0;
 	RANGES_FOR (auto G, Grouped) {
-    OS << "subgraph cluster_" << GIdx++ << " {\n";
-    OS << "labelloc = \"b\";\n";
-    OS << "label = \"" << getGroup(*G.begin()) << "\";\n";
+    if (UseClusters) {
+      OS << "subgraph cluster_" << GIdx++ << " {\n";
+      OS << "labelloc = \"b\";\n";
+      OS << "label = \"" << getGroup(*G.begin()) << "\";\n";
+    }
 
 		RANGES_FOR(auto GN, G)
       OS << "Node" << StringIndexMap[GN] << " [label=\"" << GN.split('/').second << "\"];\n";
-    OS << "}\n";
+    if (UseClusters)
+      OS << "}\n";
 	}
 
   for(auto &E: Edges)
