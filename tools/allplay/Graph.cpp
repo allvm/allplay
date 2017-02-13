@@ -10,21 +10,13 @@
 
 #include "subcommand-registry.h"
 
+#include "StringGraph.h"
+
 #include "allvm/BCDB.h"
 #include "allvm/ResourcePaths.h"
 
-#include <llvm/ADT/DenseMap.h>
-#include <llvm/ADT/DenseSet.h>
-#include <llvm/ADT/StringMap.h>
-#include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/Module.h>
-#include <llvm/Support/Errc.h>
-#include <llvm/Support/FileSystem.h>
-#include <llvm/Support/ThreadPool.h>
-#include <llvm/Support/ToolOutputFile.h>
 #include <llvm/Support/raw_ostream.h>
 
-#include <range/v3/all.hpp>
 
 using namespace allvm;
 using namespace llvm;
@@ -41,84 +33,6 @@ cl::opt<std::string> OutputFilename("o", cl::Required,
 cl::opt<bool> UseClusters("cluster", cl::Optional,
                           cl::desc("Emit nodes in clusters"), cl::sub(Graph));
 
-class StringGraph {
-  using VertexID = size_t;
-  using Edge = std::pair<VertexID, VertexID>;
-  std::vector<Edge> Edges;
-  StringMap<VertexID> StringIndexMap;
-  std::vector<StringRef> Nodes;
-public:
-  void addVertex(StringRef S) {
-    assert(!StringIndexMap.count(S));
-    assert(Nodes.size() == StringIndexMap.size());
-
-    StringIndexMap[S] = Nodes.size();
-    Nodes.push_back(S);
-  }
-
-  auto getNodeIndex(StringRef N) {
-    assert(StringIndexMap.count(N));
-    return StringIndexMap[N];
-  }
-
-  void addEdge(StringRef A, StringRef B) {
-    auto V1 = getNodeIndex(A);
-    auto V2 = getNodeIndex(B);
-
-    Edges.push_back({V1, V2});
-  }
-
-  auto &nodes() const { return Nodes; }
-  auto &edges() const { return Edges; }
-
-
-  Error writeGraph(StringRef F) {
-    std::error_code EC;
-    tool_output_file GraphFile(F, EC, sys::fs::OpenFlags::F_Text);
-    if (EC)
-      return make_error<StringError>("Unable to open file " + F, EC);
-
-    errs() << "Writing graph to " << F << "..\n";
-
-    auto &OS = GraphFile.os();
-
-    OS << "digraph G {\n";
-    // Graph properties
-    OS << "rankdir=LR;\n";
-    OS << "newrank=true;\n";
-    OS << "overlap=false;\n";
-    OS << "splines=true;\n";
-    OS << "compound=true;\n";
-    OS << "node [shape=record];\n";
-
-    // auto Grouped = Nodes | ranges::view::group_by(GrpBy);
-
-    // size_t GIdx = 0;
-    // RANGES_FOR(auto Grp, Grouped) {
-    //   if (useClusters) {
-    // if (UseClusters) {
-    //   OS << "subgraph cluster_" << GIdx++ << " {\n";
-    //   OS << "labelloc = \"b\";\n";
-    //   OS << "label = \"" << getGroup(*Grp.begin()) << "\";\n";
-    //   }
-
-    // }
-    auto getLabel = [&](auto N) { return N.split('/').second; };
-    RANGES_FOR(auto N, Nodes) {
-      OS << "Node" << getNodeIndex(N) << " [label=\"" << getLabel(N) << "\"];\n";
-    }
-
-    RANGES_FOR(auto E, Edges) {
-      OS << "Node" << E.first << " -> " << "Node" << E.second << ";\n";
-    }
-
-    OS << "}\n";
-
-    GraphFile.keep();
-
-    return Error::success();
-  }
-};
 
 Error graph(BCDB &DB, StringRef Prefix, StringRef GraphFilename) {
 

@@ -12,6 +12,7 @@ add_llvm_tool(allplay
   FindUses.cpp
   FunctionHash.cpp
   Graph.cpp
+  StringGraph.cpp
 
   subcommand-registry.cpp
 )
