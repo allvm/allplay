@@ -1,5 +1,7 @@
 #include "subcommand-registry.h"
 
+#include "StringGraph.h"
+
 #include "allvm/BCDB.h"
 #include "allvm/ModuleFlags.h"
 
@@ -14,6 +16,8 @@
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Transforms/Utils/FunctionComparator.h>
+
+#include <range/v3/all.hpp>
 
 #include <algorithm>
 #include <functional>
@@ -37,9 +41,8 @@ struct FuncDesc {
   std::string FuncName;
   size_t Insts;
   std::string Source;
+  FunctionHash H;
 };
-
-using FnVec = SmallVector<FuncDesc, 1>;
 
 template <typename T> auto countInsts(const T *V) {
   return std::accumulate(
@@ -47,7 +50,7 @@ template <typename T> auto countInsts(const T *V) {
       [](auto N, auto &child) { return N + countInsts(&child); });
 }
 template <> auto countInsts(const BasicBlock *B) { return B->size(); }
-auto countInsts(const FuncDesc &FD) { return FD.Insts; }
+// auto countInsts(const FuncDesc &FD) { return FD.Insts; }
 
 // Meant for containers, so named differently.
 template <typename T> auto countAllInsts(const T &Vs) {
@@ -59,7 +62,8 @@ Error functionHash(BCDB &DB) {
 
   errs() << "Materializing and computing function hashes...\n";
   size_t totalInsts = 0;
-  DenseMap<FunctionHash, FnVec> hashToFns;
+  std::vector<FuncDesc> Functions;
+
   for (auto MI : DB.getMods()) {
     SMDiagnostic SM;
     LLVMContext C;
@@ -75,13 +79,34 @@ Error functionHash(BCDB &DB) {
       auto H = FunctionComparator::functionHash(F);
 
       // errs() << "Hash for '" << F.getName() << "': " << H << "\n";
-      hashToFns[H].push_back(
-          FuncDesc{&MI, F.getName(), countInsts(&F), MI.Filename});
+      Functions.push_back(FuncDesc{&MI, F.getName(), countInsts(&F), MI.Filename, H});
     }
 
     totalInsts += countInsts(M.get());
   }
 
+  errs() << "Hashes computed, grouping...\n";
+
+  auto Groups = Functions
+      // Indirection so copies are cheaper (only needed because we concretize to vector for sorting)
+      | ranges::view::transform([](auto &F){ return &F; })
+      // Group by hash
+      | ranges::view::group_by([](auto *A, auto *B) { return A->H == B->H; })
+      // Sort by group size, largest first
+      | ranges::to_vector
+      | ranges::action::sort([](auto A, auto B) { return ranges::distance(A) > ranges::distance(B); });
+
+  RANGES_FOR(auto G, Groups) {
+    auto N = ranges::distance(G);
+    if (N == 1) continue;
+    errs() << "Group!\n";
+    errs() << N << "\n";
+    RANGES_FOR(auto F, G) {
+      errs() << "Function: " << F->FuncName << "\n";
+    }
+  }
+
+#if 0
   std::vector<FnVec> fnCollisions;
 
   for (auto &KV : hashToFns) {
@@ -145,6 +170,7 @@ Error functionHash(BCDB &DB) {
   errs() << "Ratio (>=20): "
          << format("%.4g", double(redundantInstsLarger) / double(totalInsts))
          << "\n";
+#endif
 
   return Error::success();
 }
