@@ -166,13 +166,20 @@ Error functionHash(BCDB &DB) {
     RANGES_FOR(const auto &H, StrHashes) { Graph.addVertex(H); }
 
     RANGES_FOR(const auto &NF, NamedFunctions) {
-      Graph.addVertex(NF.second);
+     // Graph.addVertex(NF.second);
 
-      Graph.addEdge(NF.first->Source, NF.second);
-      Graph.addEdge(NF.second, Twine(NF.first->H).str());
+     // Graph.addEdge(NF.first->Source, NF.second);
+     // Graph.addEdge(NF.second, Twine(NF.first->H).str());
+       Graph.addEdge(NF.first->Source, Twine(NF.first->H).str());
     }
 
-    return Graph.writeGraph(WriteGraph);
+    auto getLabel = [](StringRef S) {
+      if (!S.contains('/'))
+        return S;
+      return S.rsplit('/').second;
+    };
+
+    return Graph.writeGraph(WriteGraph, getLabel);
 
     // Module -> (Source: Function)
   }
