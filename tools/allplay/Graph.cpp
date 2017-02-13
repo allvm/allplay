@@ -63,64 +63,10 @@ Error graph(BCDB &DB, StringRef Prefix, StringRef GraphFilename) {
       G.addEdge(removePrefix(A.Filename), removePrefix(M.Filename));
     }
   }
-
-  return G.writeGraph(GraphFilename);
-
-#if 0
-
   auto getGroup = [&](StringRef S) { return removePrefix(S).split('/').first; };
+  auto getLabel = [&](StringRef S) { return removePrefix(S).split('/').second; };
 
-  auto Grouped = G.nodes() | ranges::view::group_by([&getGroup](auto a, auto b) {
-                   return getGroup(a) == getGroup(b);
-                 });
-
-  size_t GIdx = 0;
-  RANGES_FOR(auto Grp, Grouped) {
-    if (UseClusters) {
-      OS << "subgraph cluster_" << GIdx++ << " {\n";
-      OS << "labelloc = \"b\";\n";
-      OS << "label = \"" << getGroup(*Grp.begin()) << "\";\n";
-    }
-
-    RANGES_FOR(auto GN, Grp)
-    OS << "Node" << G.getNodeIndex(GN) << " [label=\"" << GN.split('/').second
-       << "\"];\n";
-    if (UseClusters)
-      OS << "}\n";
-  }
-
-  for (auto &E : G.edges())
-    OS << "Node" << E.first << " -> Node" << E.second << "\n";
-
-// std::sort(Nodes.begin(), Nodes.end(), [&](auto &A, auto &B) {
-//    return getGroup(G[A]) < getGroup(G[B]);
-// });
-
-  for (const auto &A : DB.getAllexes()) {
-    OS << "subgraph cluster_" << AIdx << " {\n";
-    OS << "labelloc = \"b\";\n";
-    OS << "label = \"" << L << "\";\n";
-    OS << "}\n";
-  }
-
-
-  errs() << "edges...\n";
-  for (const auto &E : G.edges()) {
-    OS << "A" << E.first.first << " -> "
-       << "A" << E.first.second << ";\n";
-  }
-  errs() << "nodes...\n";
-
-  // for (const auto &V : G.vertices()) {
-  //  OS << "A" << V.first << " [label=\"" << V.second << "\"];\n";
-  //}
-
-  OS << "}\n";
-
-  GraphFile.keep();
-
-  return Error::success();
-#endif
+  return G.writeGraph(GraphFilename, getLabel, getGroup);
 }
 
 CommandRegistration Unused(&Graph, [](ResourcePaths &RP) -> Error {

@@ -39,7 +39,8 @@ public:
   auto &nodes() const { return Nodes; }
   auto &edges() const { return Edges; }
 
-  llvm::Error writeGraph(llvm::StringRef F);
+  typedef std::function<llvm::StringRef(llvm::StringRef)> StrFn;
+  llvm::Error writeGraph(llvm::StringRef F, StrFn getLabel = [](auto S){ return S;}, StrFn getGroup = [](auto){ return "";});
 };
 
 } // end namespace allvm

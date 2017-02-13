@@ -11,7 +11,7 @@
 using namespace allvm;
 using namespace llvm;
 
-Error StringGraph::writeGraph(StringRef F) {
+Error StringGraph::writeGraph(StringRef F, StrFn getLabel, StrFn getGroup LLVM_ATTRIBUTE_UNUSED) {
     std::error_code EC;
     tool_output_file GraphFile(F, EC, sys::fs::OpenFlags::F_Text);
     if (EC)
@@ -42,7 +42,6 @@ Error StringGraph::writeGraph(StringRef F) {
     //   }
 
     // }
-    auto getLabel = [&](auto N) { return N.split('/').second; };
     RANGES_FOR(auto N, Nodes) {
       OS << "Node" << getNodeIndex(N) << " [label=\"" << getLabel(N) << "\"];\n";
     }
