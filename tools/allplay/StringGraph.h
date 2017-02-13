@@ -1,8 +1,8 @@
 #ifndef ALLPLAY_STRINGGRAPH_H
 #define ALLPLAY_STRINGGRAPH_H
 
-#include <llvm/ADT/StringRef.h>
 #include <llvm/ADT/StringMap.h>
+#include <llvm/ADT/StringRef.h>
 #include <llvm/Support/Error.h>
 
 #include <vector>
@@ -15,6 +15,7 @@ class StringGraph {
   std::vector<Edge> Edges;
   llvm::StringMap<VertexID> StringIndexMap;
   std::vector<llvm::StringRef> Nodes;
+
 public:
   void addVertex(llvm::StringRef S) {
     assert(!StringIndexMap.count(S));
@@ -40,7 +41,9 @@ public:
   auto &edges() const { return Edges; }
 
   typedef std::function<llvm::StringRef(llvm::StringRef)> StrFn;
-  llvm::Error writeGraph(llvm::StringRef F, StrFn getLabel = [](auto S){ return S;}, StrFn getGroup = [](auto){ return "";});
+  llvm::Error writeGraph(llvm::StringRef F,
+                         StrFn getLabel = [](auto S) { return S; },
+                         StrFn getGroup = [](auto) { return ""; });
 };
 
 } // end namespace allvm

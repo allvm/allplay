@@ -17,7 +17,6 @@
 
 #include <llvm/Support/raw_ostream.h>
 
-
 using namespace allvm;
 using namespace llvm;
 
@@ -32,7 +31,6 @@ cl::opt<std::string> OutputFilename("o", cl::Required,
                                     cl::sub(Graph));
 cl::opt<bool> UseClusters("cluster", cl::Optional,
                           cl::desc("Emit nodes in clusters"), cl::sub(Graph));
-
 
 Error graph(BCDB &DB, StringRef Prefix, StringRef GraphFilename) {
 
@@ -64,7 +62,9 @@ Error graph(BCDB &DB, StringRef Prefix, StringRef GraphFilename) {
     }
   }
   auto getGroup = [&](StringRef S) { return removePrefix(S).split('/').first; };
-  auto getLabel = [&](StringRef S) { return removePrefix(S).split('/').second; };
+  auto getLabel = [&](StringRef S) {
+    return removePrefix(S).split('/').second;
+  };
 
   return G.writeGraph(GraphFilename, getLabel, getGroup);
 }

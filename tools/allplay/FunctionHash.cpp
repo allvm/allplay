@@ -79,7 +79,8 @@ Error functionHash(BCDB &DB) {
       auto H = FunctionComparator::functionHash(F);
 
       // errs() << "Hash for '" << F.getName() << "': " << H << "\n";
-      Functions.push_back(FuncDesc{&MI, F.getName(), countInsts(&F), MI.Filename, H});
+      Functions.push_back(
+          FuncDesc{&MI, F.getName(), countInsts(&F), MI.Filename, H});
     }
 
     totalInsts += countInsts(M.get());
@@ -90,16 +91,19 @@ Error functionHash(BCDB &DB) {
   // Sort by hash
   Functions |= ranges::action::sort(std::less<FunctionHash>{}, &FuncDesc::H);
 
-  auto Groups = Functions
-      // Indirection so copies are cheaper (only useful because we concretize to vector for sorting)
-      | ranges::view::transform([](auto &F){ return &F; })
+  auto Groups =
+      Functions
+      // Indirection so copies are cheaper (only useful because we concretize to
+      // vector for sorting)
+      | ranges::view::transform([](auto &F) { return &F; })
       // Group by hash
       | ranges::view::group_by([](auto *A, auto *B) { return A->H == B->H; })
       // Remove singleton groups
       | ranges::view::remove_if([](auto A) { return ranges::distance(A) == 1; })
       // Sort by group size, largest first.
-      | ranges::to_vector
-      | ranges::action::sort(std::greater<size_t>(), [](auto &A) { return ranges::distance(A); });
+      | ranges::to_vector |
+      ranges::action::sort(std::greater<size_t>(),
+                           [](auto &A) { return ranges::distance(A); });
 
   size_t redundantInstsMaybe = 0;
   RANGES_FOR(auto G, Groups) {
@@ -107,13 +111,16 @@ Error functionHash(BCDB &DB) {
     auto numFns = ranges::distance(G);
     errs() << "Function Group, count: " << numFns << "\n";
 
-    auto instCount = [](auto Fns) { return ranges::accumulate(Fns | ranges::view::transform(&FuncDesc::Insts), size_t{0}); };
+    auto instCount = [](auto Fns) {
+      return ranges::accumulate(Fns | ranges::view::transform(&FuncDesc::Insts),
+                                size_t{0});
+    };
 
     auto numInsts = instCount(G);
     errs() << "Insts: " << numInsts << "\n";
     assert(numFns > 0);
-    errs() << "InstsPerFn: " << numInsts/size_t(numFns) << "\n";
-    auto numInstsSkipFirst = instCount(G|ranges::view::drop(1));
+    errs() << "InstsPerFn: " << numInsts / size_t(numFns) << "\n";
+    auto numInstsSkipFirst = instCount(G | ranges::view::drop(1));
     redundantInstsMaybe += numInstsSkipFirst;
     RANGES_FOR(auto F, G) {
       errs() << F->Source << ": " << F->FuncName << "\n";
