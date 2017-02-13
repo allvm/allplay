@@ -70,6 +70,8 @@ Error graph(BCDB &DB, StringRef Prefix, StringRef GraphFilename) {
   errs() << "Adding edges..\n";
   for (const auto &A : DB.getAllexes()) {
     for (const auto &M : A.Modules) {
+      assert(StringIndexMap.count(A.Filename));
+      assert(StringIndexMap.count(M.Filename));
       auto V1 = StringIndexMap[A.Filename];
       auto V2 = StringIndexMap[M.Filename];
       G[{V1, V2}] = EdgeAttr{0};
