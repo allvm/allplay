@@ -142,17 +142,28 @@ Error functionHash(BCDB &DB) {
 
     StringGraph Graph;
 
-    auto Mods = Functions | ranges::view::transform(&FuncDesc::Mod) | ranges::to_vector | ranges::action::sort | ranges::action::unique;
+    auto Mods = Functions | ranges::view::transform(&FuncDesc::Mod) |
+                ranges::to_vector | ranges::action::sort |
+                ranges::action::unique;
 
-    for (auto &M: Mods) { Graph.addVertex(M->Filename); }
-
-    auto NamedFunctions = Functions | ranges::view::transform([](auto &F) { return std::pair<const FuncDesc*, std::string> {&F, F.FuncName + "\\n" + F.Source}; }) | ranges::to_vector;
-    auto Hashes = Functions | ranges::view::transform(&FuncDesc::H) | ranges::to_vector | ranges::action::sort | ranges::action::unique;
-   auto StrHashes = Hashes | ranges::view::transform([](auto H) { return Twine(H).str(); }) | ranges::to_vector;
-
-    RANGES_FOR(const auto &H, StrHashes) {
-      Graph.addVertex(H);
+    for (auto &M : Mods) {
+      Graph.addVertex(M->Filename);
     }
+
+    auto NamedFunctions = Functions | ranges::view::transform([](auto &F) {
+                            return std::pair<const FuncDesc *, std::string>{
+                                &F, F.FuncName + "\\n" + F.Source};
+                          }) |
+                          ranges::to_vector;
+    auto Hashes = Functions | ranges::view::transform(&FuncDesc::H) |
+                  ranges::to_vector | ranges::action::sort |
+                  ranges::action::unique;
+    auto StrHashes =
+        Hashes |
+        ranges::view::transform([](auto H) { return Twine(H).str(); }) |
+        ranges::to_vector;
+
+    RANGES_FOR(const auto &H, StrHashes) { Graph.addVertex(H); }
 
     RANGES_FOR(const auto &NF, NamedFunctions) {
       Graph.addVertex(NF.second);
