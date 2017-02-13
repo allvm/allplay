@@ -92,15 +92,15 @@ Error functionHash(BCDB &DB) {
       | ranges::view::transform([](auto &F){ return &F; })
       // Group by hash
       | ranges::view::group_by([](auto *A, auto *B) { return A->H == B->H; })
-      // Sort by group size, largest first
+      // Remove singleton groups
+      | ranges::view::remove_if([](auto A) { return ranges::distance(A) == 1; })
+      // Sort by group size, largest first.
       | ranges::to_vector
-      | ranges::action::sort(std::greater<size_t>(), [](auto A) { return ranges::distance(A); });
+      | ranges::action::sort(std::greater<size_t>(), [](auto &A) { return ranges::distance(A); });
 
   RANGES_FOR(auto G, Groups) {
-    auto N = ranges::distance(G);
-    if (N == 1) continue;
     errs() << "Group!\n";
-    errs() << N << "\n";
+    errs() << ranges::distance(G) << "\n";
     RANGES_FOR(auto F, G) {
       errs() << "Function: " << F->FuncName << "\n";
     }
