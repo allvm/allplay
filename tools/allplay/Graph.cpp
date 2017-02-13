@@ -39,7 +39,86 @@ cl::opt<std::string> OutputFilename("o", cl::Required,
                                     cl::desc("name of file to write graph"),
                                     cl::sub(Graph));
 cl::opt<bool> UseClusters("cluster", cl::Optional,
-                          cl::desc("Emit nodes in cluters"), cl::sub(Graph));
+                          cl::desc("Emit nodes in clusters"), cl::sub(Graph));
+
+class StringGraph {
+  using VertexID = size_t;
+  using Edge = std::pair<VertexID, VertexID>;
+  std::vector<Edge> Edges;
+  StringMap<VertexID> StringIndexMap;
+  std::vector<StringRef> Nodes;
+public:
+  void addVertex(StringRef S) {
+    assert(!StringIndexMap.count(S));
+    assert(Nodes.size() == StringIndexMap.size());
+
+    StringIndexMap[S] = Nodes.size();
+    Nodes.push_back(S);
+  }
+
+  auto getNodeIndex(StringRef N) {
+    assert(StringIndexMap.count(N));
+    return StringIndexMap[N];
+  }
+
+  void addEdge(StringRef A, StringRef B) {
+    auto V1 = getNodeIndex(A);
+    auto V2 = getNodeIndex(B);
+
+    Edges.push_back({V1, V2});
+  }
+
+  auto &nodes() const { return Nodes; }
+  auto &edges() const { return Edges; }
+
+
+  Error writeGraph(StringRef F) {
+    std::error_code EC;
+    tool_output_file GraphFile(F, EC, sys::fs::OpenFlags::F_Text);
+    if (EC)
+      return make_error<StringError>("Unable to open file " + F, EC);
+
+    errs() << "Writing graph to " << F << "..\n";
+
+    auto &OS = GraphFile.os();
+
+    OS << "digraph G {\n";
+    // Graph properties
+    OS << "rankdir=LR;\n";
+    OS << "newrank=true;\n";
+    OS << "overlap=false;\n";
+    OS << "splines=true;\n";
+    OS << "compound=true;\n";
+    OS << "node [shape=record];\n";
+
+    // auto Grouped = Nodes | ranges::view::group_by(GrpBy);
+
+    // size_t GIdx = 0;
+    // RANGES_FOR(auto Grp, Grouped) {
+    //   if (useClusters) {
+    // if (UseClusters) {
+    //   OS << "subgraph cluster_" << GIdx++ << " {\n";
+    //   OS << "labelloc = \"b\";\n";
+    //   OS << "label = \"" << getGroup(*Grp.begin()) << "\";\n";
+    //   }
+
+    // }
+    auto getLabel = [&](auto N) { return N.split('/').second; };
+    RANGES_FOR(auto N, Nodes) {
+      OS << "Node" << getNodeIndex(N) << " [label=\"" << getLabel(N) << "\"];\n";
+    }
+
+    RANGES_FOR(auto E, Edges) {
+      OS << "Node" << E.first << " -> " << "Node" << E.second << ";\n";
+    }
+
+    OS << "}\n";
+
+    GraphFile.keep();
+
+    return Error::success();
+  }
+};
 
 Error graph(BCDB &DB, StringRef Prefix, StringRef GraphFilename) {
 
@@ -55,82 +134,54 @@ Error graph(BCDB &DB, StringRef Prefix, StringRef GraphFilename) {
   };
 
   errs() << "Building AllexeGraph...\n";
-  StringMap<size_t> StringIndexMap;
-  std::vector<StringRef> Nodes;
-  size_t N = 0;
-  auto addVertex = [&](StringRef S) {
-    assert(!StringIndexMap.count(S));
-    assert(N == StringIndexMap.size());
 
-    StringIndexMap[S] = N;
-    Nodes.push_back(S);
-    ++N;
-  };
+  StringGraph G;
 
   for (const auto &A : DB.getAllexes())
-    addVertex(removePrefix(A.Filename));
+    G.addVertex(removePrefix(A.Filename));
 
   for (const auto &M : DB.getMods())
-    addVertex(removePrefix(M.Filename));
+    G.addVertex(removePrefix(M.Filename));
 
   errs() << "Adding edges...\n";
-  using Edge = std::pair<size_t, size_t>;
-  std::vector<Edge> Edges;
   for (const auto &A : DB.getAllexes()) {
     for (const auto &M : A.Modules) {
-      auto V1 = StringIndexMap[removePrefix(A.Filename)];
-      auto V2 = StringIndexMap[removePrefix(M.Filename)];
-      Edges.push_back({V1, V2});
+      G.addEdge(removePrefix(A.Filename), removePrefix(M.Filename));
     }
   }
 
-  std::error_code EC;
-  tool_output_file GraphFile(GraphFilename, EC, sys::fs::OpenFlags::F_Text);
-  if (EC)
-    return make_error<StringError>("Unable to open file " + GraphFilename, EC);
+  return G.writeGraph(GraphFilename);
 
-  errs() << "Writing graph to " << GraphFilename << "\n";
-  auto &OS = GraphFile.os();
-
-  OS << "digraph allexes {\n";
-  OS << "rankdir=LR;\n";
-  OS << "newrank=true;\n";
-  OS << "overlap=false;\n";
-  OS << "splines=true;\n";
-  OS << "compound=true;\n";
-  OS << "node [shape=record];\n";
+#if 0
 
   auto getGroup = [&](StringRef S) { return removePrefix(S).split('/').first; };
 
-  Nodes |= ranges::action::sort(std::less<StringRef>{}, getGroup);
-
-  auto Grouped = Nodes | ranges::view::group_by([&getGroup](auto a, auto b) {
+  auto Grouped = G.nodes() | ranges::view::group_by([&getGroup](auto a, auto b) {
                    return getGroup(a) == getGroup(b);
                  });
 
   size_t GIdx = 0;
-  RANGES_FOR(auto G, Grouped) {
+  RANGES_FOR(auto Grp, Grouped) {
     if (UseClusters) {
       OS << "subgraph cluster_" << GIdx++ << " {\n";
       OS << "labelloc = \"b\";\n";
-      OS << "label = \"" << getGroup(*G.begin()) << "\";\n";
+      OS << "label = \"" << getGroup(*Grp.begin()) << "\";\n";
     }
 
-    RANGES_FOR(auto GN, G)
-    OS << "Node" << StringIndexMap[GN] << " [label=\"" << GN.split('/').second
+    RANGES_FOR(auto GN, Grp)
+    OS << "Node" << G.getNodeIndex(GN) << " [label=\"" << GN.split('/').second
        << "\"];\n";
     if (UseClusters)
       OS << "}\n";
   }
 
-  for (auto &E : Edges)
+  for (auto &E : G.edges())
     OS << "Node" << E.first << " -> Node" << E.second << "\n";
 
 // std::sort(Nodes.begin(), Nodes.end(), [&](auto &A, auto &B) {
 //    return getGroup(G[A]) < getGroup(G[B]);
 // });
 
-#if 0
   for (const auto &A : DB.getAllexes()) {
     OS << "subgraph cluster_" << AIdx << " {\n";
     OS << "labelloc = \"b\";\n";
@@ -145,7 +196,6 @@ Error graph(BCDB &DB, StringRef Prefix, StringRef GraphFilename) {
        << "A" << E.first.second << ";\n";
   }
   errs() << "nodes...\n";
-#endif
 
   // for (const auto &V : G.vertices()) {
   //  OS << "A" << V.first << " [label=\"" << V.second << "\"];\n";
@@ -156,6 +206,7 @@ Error graph(BCDB &DB, StringRef Prefix, StringRef GraphFilename) {
   GraphFile.keep();
 
   return Error::success();
+#endif
 }
 
 CommandRegistration Unused(&Graph, [](ResourcePaths &RP) -> Error {
