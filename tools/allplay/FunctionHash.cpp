@@ -98,66 +98,23 @@ Error functionHash(BCDB &DB) {
       | ranges::to_vector
       | ranges::action::sort(std::greater<size_t>(), [](auto &A) { return ranges::distance(A); });
 
-  RANGES_FOR(auto G, Groups) {
-    errs() << "Group!\n";
-    errs() << ranges::distance(G) << "\n";
-    RANGES_FOR(auto F, G) {
-      errs() << "Function: " << F->FuncName << "\n";
-    }
-  }
-
-#if 0
-  std::vector<FnVec> fnCollisions;
-
-  for (auto &KV : hashToFns) {
-    fnCollisions.push_back(KV.getSecond());
-  }
-
-  // sort by number of functions sharing a hash
-  // (most frequent first)
-  std::sort(fnCollisions.begin(), fnCollisions.end(),
-            [](auto &A, auto &B) { return A.size() > B.size(); });
-
   size_t redundantInstsMaybe = 0;
-  size_t redundantInstsLarger = 0;
-  for (auto &fns : fnCollisions) {
-    if (fns.size() == 1)
-      continue;
-    errs() << "----------\n";
-    errs() << "Functions: " << fns.size() << "\n";
+  RANGES_FOR(auto G, Groups) {
+    errs() << "-----------\n";
+    auto numFns = ranges::distance(G);
+    errs() << "Function Group, count: " << numFns << "\n";
 
-    // DenseSet<Module *> mods;
-    // for (auto *F : fns)
-    //   mods.insert(F->getParent());
-    // errs() << "Modules: " << mods.size() << "\n";
+    auto instCount = [](auto Fns) { return ranges::accumulate(Fns | ranges::view::transform(&FuncDesc::Insts), size_t{0}); };
 
-    auto numInsts = countAllInsts(fns);
-
+    auto numInsts = instCount(G);
     errs() << "Insts: " << numInsts << "\n";
-    auto instsPerFn = numInsts / fns.size();
-    errs() << "InstsPerFn: " << instsPerFn << "\n";
-
-    // This isn't apparently always true, but usually is
-    // assert(instsPerFn * fns.size() == numInsts);
-
-    redundantInstsMaybe += numInsts - instsPerFn;
-    if (instsPerFn >= 20)
-      redundantInstsLarger += numInsts - instsPerFn;
-
-    for (auto &F : fns)
-      errs() << F.Source << ": " << F.FuncName << "\n";
-
-    // if this is non-trivial function, print it for my curiosity :)
-    // if (instsPerFn > 50) {
-    //   fns[0]->dump();
-    //}
-
-    // if (fns.size() > 50)
-    // fns[0]->dump();
-    // fns[1]->dump();
-    // for (auto *F : fns) {
-    //    F->dump();
-    //}
+    assert(numFns > 0);
+    errs() << "InstsPerFn: " << numInsts/size_t(numFns) << "\n";
+    auto numInstsSkipFirst = instCount(G|ranges::view::drop(1));
+    redundantInstsMaybe += numInstsSkipFirst;
+    RANGES_FOR(auto F, G) {
+      errs() << F->Source << ": " << F->FuncName << "\n";
+    }
   }
 
   errs() << "Total instructions in filtered DB: " << totalInsts << "\n";
@@ -165,12 +122,6 @@ Error functionHash(BCDB &DB) {
   errs() << "Ratio: "
          << format("%.4g", double(redundantInstsMaybe) / double(totalInsts))
          << "\n";
-  errs() << "Possibly redundant instructions (in functions with >=20 insts): "
-         << redundantInstsLarger << "\n";
-  errs() << "Ratio (>=20): "
-         << format("%.4g", double(redundantInstsLarger) / double(totalInsts))
-         << "\n";
-#endif
 
   return Error::success();
 }
