@@ -23,7 +23,8 @@
 #include <llvm/Support/ThreadPool.h>
 #include <llvm/Support/ToolOutputFile.h>
 #include <llvm/Support/raw_ostream.h>
-#include <llvm/XRay/Graph.h>
+
+#include <range/v3/all.hpp>
 
 using namespace allvm;
 using namespace llvm;
@@ -38,43 +39,44 @@ cl::opt<std::string> OutputFilename("o", cl::Required,
                                     cl::desc("name of file to write graph"),
                                     cl::sub(Graph));
 
-using VertexAttr = llvm::StringRef; // ?
-using EdgeAttr = int;
-using VertexID = size_t;
-using AGraph = llvm::xray::Graph<VertexAttr, EdgeAttr, VertexID>;
-
 Error graph(BCDB &DB, StringRef Prefix, StringRef GraphFilename) {
 
-  AGraph G;
+  auto removePrefix = [Prefix](StringRef S) {
+    if (S.startswith(Prefix))
+      S = S.drop_front(Prefix.size());
+    StringRef NixStorePrefix = "/nix/store/";
+    if (S.startswith(NixStorePrefix))
+      S = S.drop_front(NixStorePrefix.size());
+    return S;
+  };
 
   errs() << "Building AllexeGraph...\n";
   StringMap<size_t> StringIndexMap;
+	std::vector<StringRef> Nodes;
   size_t N = 0;
   auto addVertex = [&](StringRef S) {
     assert(!StringIndexMap.count(S));
     assert(N == StringIndexMap.size());
 
-    if (S.startswith(Prefix))
-      S = S.drop_front(Prefix.size());
     StringIndexMap[S] = N;
-    G[N] = S;
+		Nodes.push_back(S);
     ++N;
   };
 
   for (const auto &A : DB.getAllexes())
-    addVertex(A.Filename);
+    addVertex(removePrefix(A.Filename));
 
   for (const auto &M : DB.getMods())
-    addVertex(M.Filename);
+    addVertex(removePrefix(M.Filename));
 
-  errs() << "Adding edges..\n";
+  errs() << "Adding edges...\n";
+	using Edge = std::pair<size_t, size_t>;
+	std::vector<Edge> Edges;
   for (const auto &A : DB.getAllexes()) {
     for (const auto &M : A.Modules) {
-      assert(StringIndexMap.count(A.Filename));
-      assert(StringIndexMap.count(M.Filename));
-      auto V1 = StringIndexMap[A.Filename];
-      auto V2 = StringIndexMap[M.Filename];
-      G[{V1, V2}] = EdgeAttr{0};
+      auto V1 = StringIndexMap[removePrefix(A.Filename)];
+      auto V2 = StringIndexMap[removePrefix(M.Filename)];
+			Edges.push_back({V1, V2});
     }
   }
 
@@ -86,11 +88,42 @@ Error graph(BCDB &DB, StringRef Prefix, StringRef GraphFilename) {
   errs() << "Writing graph to " << GraphFilename << "\n";
   auto &OS = GraphFile.os();
 
-  // Ty to llvm-xray code for this...
   OS << "digraph allexes {\n";
   OS << "rankdir=LR;\n";
-  OS << "newrank = true;\n";
+  OS << "newrank=true;\n";
+  OS << "overlap=false;\n";
+  OS << "splines=true;\n";
   OS << "node [shape=record];\n";
+
+  auto getGroup = [&] (StringRef S) {
+    return removePrefix(S).split('/').first;
+  };
+
+	Nodes |= ranges::action::sort(std::less<StringRef>{}, getGroup);
+
+	auto Grouped = Nodes | ranges::view::group_by([&getGroup](auto a, auto b){
+		return getGroup(a) == getGroup(b);
+	});
+
+	RANGES_FOR (auto G, Grouped) {
+		errs() << "Group!\n";
+		RANGES_FOR(auto GN, G) {
+			errs() << "Node: " << GN << "\n";
+		}
+	}
+
+ // std::sort(Nodes.begin(), Nodes.end(), [&](auto &A, auto &B) {
+ //    return getGroup(G[A]) < getGroup(G[B]);
+ // });
+
+#if 0
+  for (const auto &A : DB.getAllexes()) {
+    OS << "subgraph cluster_" << AIdx << " {\n";
+    OS << "labelloc = \"b\";\n";
+    OS << "label = \"" << L << "\";\n";
+    OS << "}\n";
+  }
+
 
   errs() << "edges...\n";
   for (const auto &E : G.edges()) {
@@ -98,10 +131,11 @@ Error graph(BCDB &DB, StringRef Prefix, StringRef GraphFilename) {
        << "A" << E.first.second << ";\n";
   }
   errs() << "nodes...\n";
+#endif
 
-  for (const auto &V : G.vertices()) {
-    OS << "A" << V.first << " [label=\"" << V.second << "\"];\n";
-  }
+  //for (const auto &V : G.vertices()) {
+  //  OS << "A" << V.first << " [label=\"" << V.second << "\"];\n";
+  //}
 
   OS << "}\n";
 

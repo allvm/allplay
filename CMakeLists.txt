@@ -38,6 +38,7 @@ include(HandleLLVMOptions)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(LLVM_BUILD_TOOLS ON)
+set(LLVM_REQUIRES_RTTI ON)
 
 find_package( ZLIB REQUIRED )
 
