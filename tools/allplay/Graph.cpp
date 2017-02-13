@@ -47,6 +47,8 @@ Error graph(BCDB &DB, StringRef Prefix, StringRef GraphFilename) {
     StringRef NixStorePrefix = "/nix/store/";
     if (S.startswith(NixStorePrefix))
       S = S.drop_front(NixStorePrefix.size());
+    if (S.startswith("/"))
+      S = S.drop_front(1);
     return S;
   };
 
