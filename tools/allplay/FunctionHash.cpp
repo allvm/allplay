@@ -87,8 +87,11 @@ Error functionHash(BCDB &DB) {
 
   errs() << "Hashes computed, grouping...\n";
 
+  // Sort by hash
+  Functions |= ranges::action::sort(std::less<FunctionHash>{}, &FuncDesc::H);
+
   auto Groups = Functions
-      // Indirection so copies are cheaper (only needed because we concretize to vector for sorting)
+      // Indirection so copies are cheaper (only useful because we concretize to vector for sorting)
       | ranges::view::transform([](auto &F){ return &F; })
       // Group by hash
       | ranges::view::group_by([](auto *A, auto *B) { return A->H == B->H; })
