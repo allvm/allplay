@@ -93,6 +93,7 @@ Error graph(BCDB &DB, StringRef Prefix, StringRef GraphFilename) {
   OS << "newrank=true;\n";
   OS << "overlap=false;\n";
   OS << "splines=true;\n";
+  OS << "compound=true;\n";
   OS << "node [shape=record];\n";
 
   auto getGroup = [&] (StringRef S) {
@@ -105,12 +106,19 @@ Error graph(BCDB &DB, StringRef Prefix, StringRef GraphFilename) {
 		return getGroup(a) == getGroup(b);
 	});
 
+  size_t GIdx = 0;
 	RANGES_FOR (auto G, Grouped) {
-		errs() << "Group!\n";
-		RANGES_FOR(auto GN, G) {
-			errs() << "Node: " << GN << "\n";
-		}
+    OS << "subgraph cluster_" << GIdx++ << " {\n";
+    OS << "labelloc = \"b\";\n";
+    OS << "label = \"" << getGroup(*G.begin()) << "\";\n";
+
+		RANGES_FOR(auto GN, G)
+      OS << "Node" << StringIndexMap[GN] << " [label=\"" << GN.split('/').second << "\"];\n";
+    OS << "}\n";
 	}
+
+  for(auto &E: Edges)
+    OS << "Node" << E.first << " -> Node" << E.second << "\n";
 
  // std::sort(Nodes.begin(), Nodes.end(), [&](auto &A, auto &B) {
  //    return getGroup(G[A]) < getGroup(G[B]);
