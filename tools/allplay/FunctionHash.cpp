@@ -142,20 +142,44 @@ Error functionHash(BCDB &DB) {
 
     StringGraph Graph;
 
-    auto Mods = Functions | ranges::view::transform(&FuncDesc::Mod) |
+    auto SharedFunctions =
+        Functions
+        // Group by hash
+        | ranges::view::group_by([](auto &A, auto &B) { return A.H == B.H; })
+        // Remove singleton groups
+        | ranges::view::remove_if(
+              [](const auto &A) { return ranges::distance(A) == 1; }) |
+        ranges::view::join;
+
+    auto ModHashPairs =
+        SharedFunctions | ranges::view::transform([](const auto &FD) {
+          return std::pair<StringRef, FunctionHash>{FD.Source, FD.H};
+        }) |
+        ranges::to_vector | ranges::action::sort | ranges::action::unique;
+
+    auto Mods = ModHashPairs |
+                ranges::view::transform([](const auto &A) { return A.first; }) |
                 ranges::to_vector | ranges::action::sort |
                 ranges::action::unique;
+    auto Hashes = ModHashPairs | ranges::view::transform([](const auto &A) {
+                    return Twine(A.second).str();
+                  }) |
+                  ranges::to_vector | ranges::action::sort |
+                  ranges::action::unique;
 
-    for (auto &M : Mods) {
-      Graph.addVertex(M->Filename);
+    RANGES_FOR(auto &M, Mods) { Graph.addVertex(M); }
+    RANGES_FOR(auto &H, Hashes) { Graph.addVertex(H); }
+    RANGES_FOR(auto &MH, ModHashPairs) {
+      Graph.addEdge(MH.first, Twine(MH.second).str());
     }
 
-    auto NamedFunctions = Functions | ranges::view::transform([](auto &F) {
+#if 0
+    auto NamedFunctions = SharedFunctions | ranges::view::transform([](auto &F) {
                             return std::pair<const FuncDesc *, std::string>{
                                 &F, F.FuncName + "\\n" + F.Source};
                           }) |
                           ranges::to_vector;
-    auto Hashes = Functions | ranges::view::transform(&FuncDesc::H) |
+    auto Hashes = SharedFunctions | ranges::view::transform(&FuncDesc::H) |
                   ranges::to_vector | ranges::action::sort |
                   ranges::action::unique;
     auto StrHashes =
@@ -170,8 +194,10 @@ Error functionHash(BCDB &DB) {
 
      // Graph.addEdge(NF.first->Source, NF.second);
      // Graph.addEdge(NF.second, Twine(NF.first->H).str());
-       Graph.addEdge(NF.first->Source, Twine(NF.first->H).str());
+     //  Graph.addEdge(NF.first->Source, Twine(NF.first->H).str());
+
     }
+#endif
 
     auto getLabel = [](StringRef S) {
       if (!S.contains('/'))
