@@ -212,42 +212,13 @@ Error functionHash(BCDB &DB) {
                           {"fillcolor", "cyan"}});
     }
     RANGES_FOR(auto &H, CountedHashes) {
-      // Graph.addVertex(H,{{"label","(hash)"}});
       Graph.addVertexWithLabel(H.first, Twine(H.second).str());
     }
     RANGES_FOR(auto &MH, ModHashPairs) {
       Graph.addEdge(MH.first, Twine(MH.second).str());
     }
 
-#if 0
-    auto NamedFunctions = SharedFunctions | ranges::view::transform([](auto &F) {
-                            return std::pair<const FuncDesc *, std::string>{
-                                &F, F.FuncName + "\\n" + F.Source};
-                          }) |
-                          ranges::to_vector;
-    auto Hashes = SharedFunctions | ranges::view::transform(&FuncDesc::H) |
-                  ranges::to_vector | ranges::action::sort |
-                  ranges::action::unique;
-    auto StrHashes =
-        Hashes |
-        ranges::view::transform([](auto H) { return Twine(H).str(); }) |
-        ranges::to_vector;
-
-    RANGES_FOR(const auto &H, StrHashes) { Graph.addVertex(H); }
-
-    RANGES_FOR(const auto &NF, NamedFunctions) {
-     // Graph.addVertex(NF.second);
-
-     // Graph.addEdge(NF.first->Source, NF.second);
-     // Graph.addEdge(NF.second, Twine(NF.first->H).str());
-     //  Graph.addEdge(NF.first->Source, Twine(NF.first->H).str());
-
-    }
-#endif
-
     return Graph.writeGraph(WriteGraph);
-
-    // Module -> (Source: Function)
   }
 
   return Error::success();
