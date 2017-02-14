@@ -202,8 +202,16 @@ Error functionHash(BCDB &DB) {
                   }) |
                   to_vec_sort_uniq();
 
-    RANGES_FOR(auto &M, Mods) { Graph.addVertex(M); }
-    RANGES_FOR(auto &H, Hashes) { Graph.addVertex(H); }
+    auto getModLabel = [](StringRef S) { return S.rsplit('/').second; };
+    RANGES_FOR(auto &M, Mods) {
+      Graph.addVertex(M, {{"label", getModLabel(M)},
+                          {"style", "filled"},
+                          {"fillcolor", "cyan"}});
+    }
+    RANGES_FOR(auto &H, Hashes) {
+      // Graph.addVertex(H,{{"label","(hash)"}});
+      Graph.addVertexWithLabel(H, "hash");
+    }
     RANGES_FOR(auto &MH, ModHashPairs) {
       Graph.addEdge(MH.first, Twine(MH.second).str());
     }
@@ -234,13 +242,7 @@ Error functionHash(BCDB &DB) {
     }
 #endif
 
-    auto getLabel = [](StringRef S) {
-      if (!S.contains('/'))
-        return S;
-      return S.rsplit('/').second;
-    };
-
-    return Graph.writeGraph(WriteGraph, getLabel);
+    return Graph.writeGraph(WriteGraph);
 
     // Module -> (Source: Function)
   }

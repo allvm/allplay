@@ -1,5 +1,6 @@
 #include "StringGraph.h"
 
+#include <llvm/ADT/SmallVector.h>
 #include <llvm/Support/Errc.h>
 #include <llvm/Support/Error.h>
 #include <llvm/Support/FileSystem.h>
@@ -11,8 +12,7 @@
 using namespace allvm;
 using namespace llvm;
 
-Error StringGraph::writeGraph(StringRef F, StrFn getLabel,
-                              StrFn getGroup LLVM_ATTRIBUTE_UNUSED) {
+Error StringGraph::writeGraph(StringRef F) {
   std::error_code EC;
   tool_output_file GraphFile(F, EC, sys::fs::OpenFlags::F_Text);
   if (EC)
@@ -43,8 +43,8 @@ Error StringGraph::writeGraph(StringRef F, StrFn getLabel,
   //   }
 
   // }
-  RANGES_FOR(auto N, Nodes) {
-    OS << "Node" << getNodeIndex(N) << " [label=\"" << getLabel(N) << "\"];\n";
+  RANGES_FOR(auto N, Nodes | ranges::view::keys) {
+    OS << "Node" << getNodeIndex(N) << " [" << getNodeAttrs(N) << "];\n";
   }
 
   RANGES_FOR(auto E, Edges) {
@@ -57,4 +57,14 @@ Error StringGraph::writeGraph(StringRef F, StrFn getLabel,
   GraphFile.keep();
 
   return Error::success();
+}
+
+void StringGraph::addVertex(llvm::StringRef S, ArrayRef<StringAttr> attrs) {
+  SmallVector<std::string, 4> AttrStrings;
+
+  for (auto &A : attrs)
+    AttrStrings.push_back(
+        (StringRef(A.first) + "=\"" + StringRef(A.second) + "\"").str());
+
+  return addVertex(S, llvm::join(AttrStrings.begin(), AttrStrings.end(), ";"));
 }

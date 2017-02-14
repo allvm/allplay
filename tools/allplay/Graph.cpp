@@ -49,11 +49,18 @@ Error graph(BCDB &DB, StringRef Prefix, StringRef GraphFilename) {
 
   StringGraph G;
 
+  auto getLabel = [&](StringRef S) {
+    return removePrefix(S).split('/').second;
+  };
+  auto addVertex = [&](StringRef S) {
+    S = removePrefix(S);
+    G.addVertexWithLabel(S, getLabel(S));
+  };
   for (const auto &A : DB.getAllexes())
-    G.addVertex(removePrefix(A.Filename));
+    addVertex(A.Filename);
 
   for (const auto &M : DB.getMods())
-    G.addVertex(removePrefix(M.Filename));
+    addVertex(M.Filename);
 
   errs() << "Adding edges...\n";
   for (const auto &A : DB.getAllexes()) {
@@ -61,12 +68,8 @@ Error graph(BCDB &DB, StringRef Prefix, StringRef GraphFilename) {
       G.addEdge(removePrefix(A.Filename), removePrefix(M.Filename));
     }
   }
-  auto getGroup = [&](StringRef S) { return removePrefix(S).split('/').first; };
-  auto getLabel = [&](StringRef S) {
-    return removePrefix(S).split('/').second;
-  };
 
-  return G.writeGraph(GraphFilename, getLabel, getGroup);
+  return G.writeGraph(GraphFilename);
 }
 
 CommandRegistration Unused(&Graph, [](ResourcePaths &RP) -> Error {
