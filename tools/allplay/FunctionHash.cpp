@@ -195,10 +195,15 @@ Error functionHash(BCDB &DB) {
         to_vec_sort_uniq();
 
     auto Mods = ModHashPairs | ranges::view::keys | to_vec_sort_uniq();
-    auto Hashes = ModHashPairs | ranges::view::transform([](const auto &A) {
-                    return Twine(A.second).str();
-                  }) |
-                  to_vec_sort_uniq();
+    auto Hashes = ModHashPairs | ranges::view::values | ranges::to_vector |
+                  ranges::action::sort;
+    auto UniqHashes = Hashes | ranges::to_vector | ranges::action::unique;
+    auto CountedHashes =
+        UniqHashes | ranges::view::transform([&](const auto &A) {
+          return std::pair<std::string, size_t>{Twine(A).str(),
+                                                ranges::count(Hashes, A)};
+        }) |
+        ranges::to_vector;
 
     auto getModLabel = [](StringRef S) { return S.rsplit('/').second; };
     RANGES_FOR(auto &M, Mods) {
@@ -206,9 +211,9 @@ Error functionHash(BCDB &DB) {
                           {"style", "filled"},
                           {"fillcolor", "cyan"}});
     }
-    RANGES_FOR(auto &H, Hashes) {
+    RANGES_FOR(auto &H, CountedHashes) {
       // Graph.addVertex(H,{{"label","(hash)"}});
-      Graph.addVertexWithLabel(H, "hash");
+      Graph.addVertexWithLabel(H.first, Twine(H.second).str());
     }
     RANGES_FOR(auto &MH, ModHashPairs) {
       Graph.addEdge(MH.first, Twine(MH.second).str());
