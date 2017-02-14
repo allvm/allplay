@@ -37,6 +37,10 @@ cl::opt<std::string>
     WriteGraph("write-graph", cl::Optional,
                cl::desc("name of file to write graph, does nothing if empty"),
                cl::init(""), cl::sub(FunctionHashes));
+cl::opt<bool>
+    PrintFunctions("print-functions", cl::Optional, cl::init(true),
+                   cl::desc("Print functions grouped by hash (default=true)"),
+                   cl::sub(FunctionHashes));
 
 using FunctionHash = FunctionComparator::FunctionHash;
 
@@ -61,6 +65,11 @@ template <typename T> auto countAllInsts(const T &Vs) {
   return std::accumulate(Vs.begin(), Vs.end(), size_t{0},
                          [](auto N, auto &V) { return N + countInsts(V); });
 }
+
+auto instCount = [](auto Fns) {
+  return ranges::accumulate(Fns | ranges::view::transform(&FuncDesc::Insts),
+                            size_t{0});
+};
 
 Error functionHash(BCDB &DB) {
 
@@ -95,47 +104,46 @@ Error functionHash(BCDB &DB) {
   // Sort by hash
   Functions |= ranges::action::sort(std::less<FunctionHash>{}, &FuncDesc::H);
 
-  auto Groups =
-      Functions
-      // Indirection so copies are cheaper (only useful because we concretize to
-      // vector for sorting)
-      | ranges::view::transform([](auto &F) { return &F; })
-      // Group by hash
-      | ranges::view::group_by([](auto *A, auto *B) { return A->H == B->H; })
-      // Remove singleton groups
-      | ranges::view::remove_if([](auto A) { return ranges::distance(A) == 1; })
-      // Sort by group size, largest first.
-      | ranges::to_vector |
-      ranges::action::sort(std::greater<size_t>(),
-                           [](auto &A) { return ranges::distance(A); });
+  if (PrintFunctions) {
+    auto Groups =
+        Functions
+        // Indirection so copies are cheaper (only useful because we concretize
+        // to vector for sorting)
+        | ranges::view::transform([](auto &F) { return &F; })
+        // Group by hash
+        | ranges::view::group_by([](auto *A, auto *B) { return A->H == B->H; })
+        // Remove singleton groups
+        |
+        ranges::view::remove_if([](auto A) { return ranges::distance(A) == 1; })
+        // Sort by group size, largest first.
+        | ranges::to_vector |
+        ranges::action::sort(std::greater<size_t>(),
+                             [](auto &A) { return ranges::distance(A); });
 
-  size_t redundantInstsMaybe = 0;
-  RANGES_FOR(auto G, Groups) {
-    errs() << "-----------\n";
-    auto numFns = ranges::distance(G);
-    errs() << "Function Group, count: " << numFns << "\n";
+    size_t redundantInstsMaybe = 0;
+    RANGES_FOR(auto G, Groups) {
+      errs() << "-----------\n";
+      auto numFns = ranges::distance(G);
+      errs() << "Function Group, count: " << numFns << "\n";
 
-    auto instCount = [](auto Fns) {
-      return ranges::accumulate(Fns | ranges::view::transform(&FuncDesc::Insts),
-                                size_t{0});
-    };
-
-    auto numInsts = instCount(G);
-    errs() << "Insts: " << numInsts << "\n";
-    assert(numFns > 0);
-    errs() << "InstsPerFn: " << numInsts / size_t(numFns) << "\n";
-    auto numInstsSkipFirst = instCount(G | ranges::view::drop(1));
-    redundantInstsMaybe += numInstsSkipFirst;
-    RANGES_FOR(auto F, G) {
-      errs() << F->Source << ": " << F->FuncName << "\n";
+      auto numInsts = instCount(G);
+      errs() << "Insts: " << numInsts << "\n";
+      assert(numFns > 0);
+      errs() << "InstsPerFn: " << numInsts / size_t(numFns) << "\n";
+      auto numInstsSkipFirst = instCount(G | ranges::view::drop_exactly(1));
+      redundantInstsMaybe += numInstsSkipFirst;
+      RANGES_FOR(auto F, G) {
+        errs() << F->Source << ": " << F->FuncName << "\n";
+      }
     }
-  }
 
-  errs() << "Total instructions in filtered DB: " << totalInsts << "\n";
-  errs() << "Possibly redundant instructions: " << redundantInstsMaybe << "\n";
-  errs() << "Ratio: "
-         << format("%.4g", double(redundantInstsMaybe) / double(totalInsts))
-         << "\n";
+    errs() << "Total instructions in filtered DB: " << totalInsts << "\n";
+    errs() << "Possibly redundant instructions: " << redundantInstsMaybe
+           << "\n";
+    errs() << "Ratio: "
+           << format("%.4g", double(redundantInstsMaybe) / double(totalInsts))
+           << "\n";
+  }
 
   if (!WriteGraph.empty()) {
     errs() << "Writing FunctionHash Graph...\n";
