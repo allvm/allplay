@@ -71,6 +71,32 @@ auto instCount = [](auto Fns) {
                             size_t{0});
 };
 
+auto group_ptr_by_hash() {
+  return ranges::view::group_by([](auto *A, auto *B) { return A->H == B->H; });
+}
+
+auto group_by_hash() {
+  return ranges::view::group_by([](auto &A, auto &B) { return A.H == B.H; });
+}
+
+auto to_ptr() {
+  return ranges::view::transform([](auto &F) { return &F; });
+}
+
+auto filter_small_ranges(ssize_t n) {
+  return ranges::view::remove_if(
+      [=](auto A) { return ranges::distance(A) <= n; });
+}
+
+auto sort_by_range_size() {
+  return ranges::action::sort(std::greater<ssize_t>(),
+                              [](auto &A) { return ranges::distance(A); });
+}
+
+auto to_vec_sort_uniq() {
+  return ranges::to_vector | ranges::action::sort | ranges::action::unique;
+}
+
 Error functionHash(BCDB &DB) {
 
   errs() << "Materializing and computing function hashes...\n";
@@ -109,16 +135,13 @@ Error functionHash(BCDB &DB) {
         Functions
         // Indirection so copies are cheaper (only useful because we concretize
         // to vector for sorting)
-        | ranges::view::transform([](auto &F) { return &F; })
+        | to_ptr()
         // Group by hash
-        | ranges::view::group_by([](auto *A, auto *B) { return A->H == B->H; })
+        | group_ptr_by_hash()
         // Remove singleton groups
-        |
-        ranges::view::remove_if([](auto A) { return ranges::distance(A) == 1; })
+        | filter_small_ranges(1)
         // Sort by group size, largest first.
-        | ranges::to_vector |
-        ranges::action::sort(std::greater<size_t>(),
-                             [](auto &A) { return ranges::distance(A); });
+        | ranges::to_vector | sort_by_range_size();
 
     size_t redundantInstsMaybe = 0;
     RANGES_FOR(auto G, Groups) {
@@ -150,30 +173,22 @@ Error functionHash(BCDB &DB) {
 
     StringGraph Graph;
 
-    auto SharedFunctions =
-        Functions
-        // Group by hash
-        | ranges::view::group_by([](auto &A, auto &B) { return A.H == B.H; })
-        // Remove singleton groups
-        | ranges::view::remove_if(
-              [](const auto &A) { return ranges::distance(A) == 1; }) |
-        ranges::view::join;
+    auto SharedFunctions = Functions | group_by_hash() |
+                           filter_small_ranges(1) | ranges::view::join;
 
     auto ModHashPairs =
         SharedFunctions | ranges::view::transform([](const auto &FD) {
           return std::pair<StringRef, FunctionHash>{FD.Source, FD.H};
         }) |
-        ranges::to_vector | ranges::action::sort | ranges::action::unique;
+        to_vec_sort_uniq();
 
     auto Mods = ModHashPairs |
                 ranges::view::transform([](const auto &A) { return A.first; }) |
-                ranges::to_vector | ranges::action::sort |
-                ranges::action::unique;
+                to_vec_sort_uniq();
     auto Hashes = ModHashPairs | ranges::view::transform([](const auto &A) {
                     return Twine(A.second).str();
                   }) |
-                  ranges::to_vector | ranges::action::sort |
-                  ranges::action::unique;
+                  to_vec_sort_uniq();
 
     RANGES_FOR(auto &M, Mods) { Graph.addVertex(M); }
     RANGES_FOR(auto &H, Hashes) { Graph.addVertex(H); }
