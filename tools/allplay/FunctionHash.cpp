@@ -212,7 +212,10 @@ Error functionHash(BCDB &DB) {
                           {"fillcolor", "cyan"}});
     }
     RANGES_FOR(auto &H, CountedHashes) {
-      Graph.addVertexWithLabel(H.first, Twine(H.second).str());
+      std::string Count = Twine(H.second).str();
+      Graph.addVertex(
+          H.first,
+          {{"label", Count}, {"fontsize", Count}, {"shape", "circle"}});
     }
     RANGES_FOR(auto &MH, ModHashPairs) {
       Graph.addEdge(MH.first, Twine(MH.second).str());
