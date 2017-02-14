@@ -194,9 +194,7 @@ Error functionHash(BCDB &DB) {
         }) |
         to_vec_sort_uniq();
 
-    auto Mods = ModHashPairs |
-                ranges::view::transform([](const auto &A) { return A.first; }) |
-                to_vec_sort_uniq();
+    auto Mods = ModHashPairs | ranges::view::keys | to_vec_sort_uniq();
     auto Hashes = ModHashPairs | ranges::view::transform([](const auto &A) {
                     return Twine(A.second).str();
                   }) |
