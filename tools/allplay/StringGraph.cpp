@@ -27,7 +27,7 @@ Error StringGraph::writeGraph(StringRef F) {
   OS << "rankdir=LR;\n";
   OS << "newrank=true;\n";
   OS << "overlap=false;\n";
-  OS << "splines=true;\n";
+  // OS << "splines=true;\n";
   OS << "compound=true;\n";
   OS << "node [shape=record];\n";
 
