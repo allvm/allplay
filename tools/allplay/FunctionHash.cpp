@@ -43,7 +43,7 @@ cl::opt<bool>
                    cl::sub(FunctionHashes));
 
 cl::opt<unsigned> GraphThreshold(
-    "graph-threshold", cl::Optional, cl::init(20),
+    "graph-threshold", cl::Optional, cl::init(2000),
     cl::desc("Threshold for including in graph, by insts-per-fn"),
     cl::sub(FunctionHashes));
 
