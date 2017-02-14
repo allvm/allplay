@@ -46,6 +46,10 @@ cl::opt<unsigned> GraphThreshold(
     "graph-threshold", cl::Optional, cl::init(2000),
     cl::desc("Threshold for including in graph, by insts-per-fn"),
     cl::sub(FunctionHashes));
+cl::opt<unsigned>
+    MinFontSize("min-font-size", cl::Optional, cl::init(12),
+                cl::desc("Minimum (starting) font size for nodes"),
+                cl::sub(FunctionHashes));
 
 using FunctionHash = FunctionComparator::FunctionHash;
 
@@ -207,15 +211,17 @@ Error functionHash(BCDB &DB) {
 
     auto getModLabel = [](StringRef S) { return S.rsplit('/').second; };
     RANGES_FOR(auto &M, Mods) {
+      auto Count = ranges::count(ModHashPairs | ranges::view::keys, M);
       Graph.addVertex(M, {{"label", getModLabel(M)},
                           {"style", "filled"},
+                          {"fontsize", Twine(Count + MinFontSize).str()},
                           {"fillcolor", "cyan"}});
     }
     RANGES_FOR(auto &H, CountedHashes) {
       std::string Count = Twine(H.second).str();
+      std::string Size = Twine(H.second + MinFontSize).str();
       Graph.addVertex(
-          H.first,
-          {{"label", Count}, {"fontsize", Count}, {"shape", "circle"}});
+          H.first, {{"label", Count}, {"fontsize", Size}, {"shape", "circle"}});
     }
     RANGES_FOR(auto &MH, ModHashPairs) {
       Graph.addEdge(MH.first, Twine(MH.second).str());
