@@ -42,10 +42,10 @@ cl::opt<bool>
                    cl::desc("Print functions grouped by hash (default=true)"),
                    cl::sub(FunctionHashes));
 
-cl::opt<unsigned>
-  GraphThreshold("graph-threshold", cl::Optional, cl::init(20),
-      cl::desc("Threshold for including in graph, by insts-per-fn"),
-      cl::sub(FunctionHashes));
+cl::opt<unsigned> GraphThreshold(
+    "graph-threshold", cl::Optional, cl::init(20),
+    cl::desc("Threshold for including in graph, by insts-per-fn"),
+    cl::sub(FunctionHashes));
 
 using FunctionHash = FunctionComparator::FunctionHash;
 
@@ -94,8 +94,9 @@ auto filter_small_ranges(ssize_t n) {
 }
 
 auto filter_by_inst_count(ssize_t n) {
-  return ranges::view::remove_if(
-      [=](auto A) { return (ssize_t(instCount(A))/ranges::distance(A)) < n; });
+  return ranges::view::remove_if([=](auto A) {
+    return (ssize_t(instCount(A)) / ranges::distance(A)) < n;
+  });
 }
 
 auto sort_by_range_size() {
@@ -183,8 +184,9 @@ Error functionHash(BCDB &DB) {
 
     StringGraph Graph;
 
-    auto SharedFunctions = Functions | group_by_hash() | filter_small_ranges(1) |
-      filter_by_inst_count(GraphThreshold) | ranges::view::join;
+    auto SharedFunctions =
+        Functions | group_by_hash() | filter_small_ranges(1) |
+        filter_by_inst_count(GraphThreshold) | ranges::view::join;
 
     auto ModHashPairs =
         SharedFunctions | ranges::view::transform([](const auto &FD) {
