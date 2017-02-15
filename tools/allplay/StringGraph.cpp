@@ -18,7 +18,7 @@ Error StringGraph::writeGraph(StringRef F) {
   if (EC)
     return make_error<StringError>("Unable to open file " + F, EC);
 
-  errs() << "Writing graph to " << F << "..\n";
+  errs() << "Writing graph to " << F << "...\n";
 
   auto &OS = GraphFile.os();
 

@@ -16,6 +16,8 @@
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Transforms/Utils/FunctionComparator.h>
+#include <llvm/Support/FileSystem.h>
+#include <llvm/Support/ToolOutputFile.h>
 
 #include <range/v3/all.hpp>
 
@@ -50,6 +52,10 @@ cl::opt<unsigned>
     MinFontSize("min-font-size", cl::Optional, cl::init(12),
                 cl::desc("Minimum (starting) font size for nodes"),
                 cl::sub(FunctionHashes));
+
+cl::opt<std::string>
+  WriteCSV("write-csv", cl::Optional,
+      cl::init(""), cl::sub(FunctionHashes));
 
 using FunctionHash = FunctionComparator::FunctionHash;
 
@@ -229,6 +235,24 @@ Error functionHash(BCDB &DB) {
     }
 
     return Graph.writeGraph(WriteGraph);
+  }
+
+  if (!WriteCSV.empty()) {
+    std::error_code EC;
+    tool_output_file CSVFile(WriteCSV, EC, sys::fs::OpenFlags::F_Text);
+    if (EC)
+      return make_error<StringError>("Unable to open file " + WriteCSV, EC);
+    errs() << "Writing CSV data to " << WriteCSV << "...\n";
+
+    auto &OS = CSVFile.os();
+
+    OS << "Source,FuncName,Insts,Hash\n";
+    RANGES_FOR(const auto &Row, Functions) {
+      OS << Row.Source << "," << Row.FuncName << "," << Row.Insts << "," << Row.H << "\n";
+    }
+
+    CSVFile.keep();
+    errs() << "Done!\n";
   }
 
   return Error::success();
