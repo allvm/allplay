@@ -28,6 +28,7 @@ public:
   }
   void addVertex(llvm::StringRef S, const llvm::Twine &Attrs) {
     assert(Nodes.size() == StringIndexMap.size());
+    assert(!StringIndexMap.count(S));
 
     StringIndexMap[S] = Nodes.size();
     Nodes.push_back({S, Attrs.str()});
