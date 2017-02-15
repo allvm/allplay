@@ -12,12 +12,12 @@
 #include <llvm/IR/Module.h>
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/Support/Errc.h>
+#include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Format.h>
 #include <llvm/Support/SourceMgr.h>
+#include <llvm/Support/ToolOutputFile.h>
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Transforms/Utils/FunctionComparator.h>
-#include <llvm/Support/FileSystem.h>
-#include <llvm/Support/ToolOutputFile.h>
 
 #include <range/v3/all.hpp>
 
@@ -53,9 +53,8 @@ cl::opt<unsigned>
                 cl::desc("Minimum (starting) font size for nodes"),
                 cl::sub(FunctionHashes));
 
-cl::opt<std::string>
-  WriteCSV("write-csv", cl::Optional,
-      cl::init(""), cl::sub(FunctionHashes));
+cl::opt<std::string> WriteCSV("write-csv", cl::Optional, cl::init(""),
+                              cl::sub(FunctionHashes));
 
 using FunctionHash = FunctionComparator::FunctionHash;
 
@@ -95,7 +94,8 @@ auto group_by_hash() {
 }
 
 auto group_by_module() {
-  return ranges::view::group_by([](auto &A, auto &B) { return A.Source == B.Source; });
+  return ranges::view::group_by(
+      [](auto &A, auto &B) { return A.Source == B.Source; });
 }
 
 auto to_ptr() {
@@ -198,9 +198,10 @@ Error functionHash(BCDB &DB) {
 
     StringGraph Graph;
 
-    auto SharedFunctions =
-        Functions | group_by_hash() | filter_small_ranges(1) |
-        filter_by_inst_count(GraphThreshold) | ranges::view::join | ranges::to_vector;
+    auto SharedFunctions = Functions | group_by_hash() |
+                           filter_small_ranges(1) |
+                           filter_by_inst_count(GraphThreshold) |
+                           ranges::view::join | ranges::to_vector;
 
     auto ModHashPairs =
         SharedFunctions | ranges::view::transform([](const auto &FD) {
@@ -208,17 +209,21 @@ Error functionHash(BCDB &DB) {
         }) |
         to_vec_sort_uniq();
 
-    auto ModGroups = SharedFunctions | ranges::to_vector | ranges::action::sort(std::less<StringRef>(),&FuncDesc::Source);
-    auto HashGroups = SharedFunctions | ranges::to_vector | ranges::action::sort(std::less<FunctionHash>(),&FuncDesc::H);
+    auto ModGroups =
+        SharedFunctions | ranges::to_vector |
+        ranges::action::sort(std::less<StringRef>(), &FuncDesc::Source);
+    auto HashGroups =
+        SharedFunctions | ranges::to_vector |
+        ranges::action::sort(std::less<FunctionHash>(), &FuncDesc::H);
 
     auto getModLabel = [](StringRef S) { return S.rsplit('/').second; };
     RANGES_FOR(auto M, ModGroups | group_by_module()) {
       auto Count = ranges::distance(M);
       auto Source = M.begin()->Source;
       Graph.addVertex(Source, {{"label", getModLabel(Source)},
-                          {"style", "filled"},
-                          {"fontsize", Twine(Count + MinFontSize).str()},
-                          {"fillcolor", "cyan"}});
+                               {"style", "filled"},
+                               {"fontsize", Twine(Count + MinFontSize).str()},
+                               {"fillcolor", "cyan"}});
     }
 
     RANGES_FOR(auto H, HashGroups | group_by_hash()) {
@@ -248,7 +253,8 @@ Error functionHash(BCDB &DB) {
 
     OS << "Source,FuncName,Insts,Hash\n";
     RANGES_FOR(const auto &Row, Functions) {
-      OS << Row.Source << "," << Row.FuncName << "," << Row.Insts << "," << Row.H << "\n";
+      OS << Row.Source << "," << Row.FuncName << "," << Row.Insts << ","
+         << Row.H << "\n";
     }
 
     CSVFile.keep();
