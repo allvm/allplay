@@ -129,6 +129,7 @@ Error functionHash(BCDB &DB) {
   size_t totalInsts = 0;
   std::vector<FuncDesc> Functions;
 
+  boost::progress_display progress(DB.getMods().size());
   for (auto &MI : DB.getMods()) {
     SMDiagnostic SM;
     LLVMContext C;
@@ -149,6 +150,7 @@ Error functionHash(BCDB &DB) {
     }
 
     totalInsts += countInsts(M.get());
+    ++progress;
   }
 
   errs() << "Hashes computed, grouping...\n";
