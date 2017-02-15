@@ -5,14 +5,20 @@
 // This code is from Boost 1.63
 // http://www.boost.org/doc/libs/1_63_0/boost/progress.hpp
 //
-// Adapted for my use.
+// Adapted for use with LLVM's raw_ostream (and clang-format'd).
 
 #include <llvm/Support/raw_ostream.h>
 #include <string>
 
 namespace boost {
 
-struct noncopyable {};
+struct noncopyable {
+  noncopyable() = default;
+  noncopyable(noncopyable const &) = delete;
+  noncopyable(noncopyable &&) = default;
+  noncopyable &operator=(noncopyable const &) = delete;
+  noncopyable &operator=(noncopyable &&) = default;
+};
 
 class progress_display : private noncopyable {
 public:
