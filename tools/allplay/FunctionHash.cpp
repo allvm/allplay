@@ -1,6 +1,7 @@
 #include "subcommand-registry.h"
 
 #include "StringGraph.h"
+#include "boost_progress.hpp"
 
 #include "allvm/BCDB.h"
 #include "allvm/ModuleFlags.h"
