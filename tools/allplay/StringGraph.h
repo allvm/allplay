@@ -6,6 +6,7 @@
 #include <llvm/ADT/StringRef.h>
 #include <llvm/ADT/Twine.h>
 #include <llvm/Support/Error.h>
+#include <llvm/Support/StringSaver.h>
 
 #include <vector>
 
@@ -14,9 +15,11 @@ namespace allvm {
 class StringGraph {
   using VertexID = size_t;
   using Edge = std::pair<VertexID, VertexID>;
-  using NodeInfo = std::pair<llvm::StringRef, std::string>;
+  using NodeInfo = std::pair<llvm::StringRef, llvm::StringRef>;
   std::vector<Edge> Edges;
   llvm::StringMap<VertexID> StringIndexMap;
+  llvm::BumpPtrAllocator Alloc;
+  llvm::StringSaver Saver{Alloc};
   std::vector<NodeInfo> Nodes;
 
 public:
@@ -30,8 +33,9 @@ public:
     assert(Nodes.size() == StringIndexMap.size());
     assert(!StringIndexMap.count(S));
 
-    StringIndexMap[S] = Nodes.size();
-    Nodes.push_back({S, Attrs.str()});
+    auto saved = Saver.save(S);
+    StringIndexMap[saved] = Nodes.size();
+    Nodes.push_back({saved, Saver.save(Attrs)});
   }
 
   auto getNodeIndex(llvm::StringRef N) {

@@ -88,6 +88,10 @@ auto group_by_hash() {
   return ranges::view::group_by([](auto &A, auto &B) { return A.H == B.H; });
 }
 
+auto group_by_module() {
+  return ranges::view::group_by([](auto &A, auto &B) { return A.Source == B.Source; });
+}
+
 auto to_ptr() {
   return ranges::view::transform([](auto &F) { return &F; });
 }
@@ -168,7 +172,7 @@ Error functionHash(BCDB &DB) {
       errs() << "Insts: " << numInsts << "\n";
       assert(numFns > 0);
       errs() << "InstsPerFn: " << numInsts / size_t(numFns) << "\n";
-      auto numInstsSkipFirst = instCount(G | ranges::view::drop_exactly(1));
+      auto numInstsSkipFirst = instCount(G | ranges::view::tail);
       redundantInstsMaybe += numInstsSkipFirst;
       RANGES_FOR(auto F, G) {
         errs() << F->Source << ": " << F->FuncName << "\n";
@@ -190,7 +194,7 @@ Error functionHash(BCDB &DB) {
 
     auto SharedFunctions =
         Functions | group_by_hash() | filter_small_ranges(1) |
-        filter_by_inst_count(GraphThreshold) | ranges::view::join;
+        filter_by_inst_count(GraphThreshold) | ranges::view::join | ranges::to_vector;
 
     auto ModHashPairs =
         SharedFunctions | ranges::view::transform([](const auto &FD) {
@@ -198,31 +202,28 @@ Error functionHash(BCDB &DB) {
         }) |
         to_vec_sort_uniq();
 
-    auto Mods = ModHashPairs | ranges::view::keys | to_vec_sort_uniq();
-    auto Hashes = ModHashPairs | ranges::view::values | ranges::to_vector |
-                  ranges::action::sort;
-    auto UniqHashes = Hashes | ranges::to_vector | ranges::action::unique;
-    auto CountedHashes =
-        UniqHashes | ranges::view::transform([&](const auto &A) {
-          return std::pair<std::string, size_t>{Twine(A).str(),
-                                                ranges::count(Hashes, A)};
-        }) |
-        ranges::to_vector;
+    auto ModGroups = SharedFunctions | ranges::to_vector | ranges::action::sort(std::less<StringRef>(),&FuncDesc::Source);
+    auto HashGroups = SharedFunctions | ranges::to_vector | ranges::action::sort(std::less<FunctionHash>(),&FuncDesc::H);
 
     auto getModLabel = [](StringRef S) { return S.rsplit('/').second; };
-    RANGES_FOR(auto &M, Mods) {
-      auto Count = ranges::count(ModHashPairs | ranges::view::keys, M);
-      Graph.addVertex(M, {{"label", getModLabel(M)},
+    RANGES_FOR(auto M, ModGroups | group_by_module()) {
+      auto Count = ranges::distance(M);
+      auto Source = M.begin()->Source;
+      Graph.addVertex(Source, {{"label", getModLabel(Source)},
                           {"style", "filled"},
                           {"fontsize", Twine(Count + MinFontSize).str()},
                           {"fillcolor", "cyan"}});
     }
-    RANGES_FOR(auto &H, CountedHashes) {
-      std::string Count = Twine(H.second).str();
-      std::string Size = Twine(H.second + MinFontSize).str();
+
+    RANGES_FOR(auto H, HashGroups | group_by_hash()) {
+      auto Count = ranges::distance(H);
+      auto CountStr = Twine(Count).str();
+      auto Size = Twine(Count + MinFontSize).str();
+      auto HStr = Twine(H.begin()->H).str();
       Graph.addVertex(
-          H.first, {{"label", Count}, {"fontsize", Size}, {"shape", "circle"}});
+          HStr, {{"label", CountStr}, {"fontsize", Size}, {"shape", "circle"}});
     }
+
     RANGES_FOR(auto &MH, ModHashPairs) {
       Graph.addEdge(MH.first, Twine(MH.second).str());
     }
