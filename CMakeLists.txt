@@ -16,8 +16,6 @@ endif()
 
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
-# find_package(Boost 1.60 REQUIRED) # TODO: Version?
-
 set(Python_ADDITIONAL_VERSIONS 2.7)
 include(FindPythonInterp)
 if( NOT PYTHONINTERP_FOUND )
@@ -70,10 +68,19 @@ set(LLVM_LIBRARY_OUTPUT_INTDIR
 link_directories(${LLVM_LIBRARY_DIR})
 include_directories(${LLVM_INCLUDE_DIR})
 
-#include_directories(${Boost_INCLUDE_DIR})
-#link_directories(${Boost_LIBRARY_DIRS})
+### Headers
 
-include_directories ("${PROJECT_SOURCE_DIR}/include")
+# Generated header path
+set(ALLVM_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/include)
+
+include_directories (${PROJECT_SOURCE_DIR}/include ${ALLVM_INCLUDE_DIR})
+
+install(DIRECTORY include/allvm ${ALLVM_INCLUDE_DIR}/allvm
+  DESTINATION include
+  COMPONENT allvm-headers
+  FILES_MATCHING PATTERN "*.h"
+)
+###
 
 include(CheckFormat)
 include(Version)
@@ -81,4 +88,3 @@ include(Version)
 add_subdirectory (libs)
 add_subdirectory (tools)
 add_subdirectory (test)
-
