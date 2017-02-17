@@ -33,6 +33,8 @@ class BCDB {
 public:
   static llvm::Expected<std::unique_ptr<BCDB>>
   loadFromAllexesIn(llvm::StringRef InputDirectory, ResourcePaths &RP);
+  static llvm::Expected<std::unique_ptr<BCDB>>
+  loadFromBitcodeIn(llvm::StringRef InputDirectory, ResourcePaths &RP);
 
   auto begin() const { return Modules.begin(); }
   auto end() const { return Modules.end(); }

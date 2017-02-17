@@ -15,6 +15,16 @@
 #include "allvm/ResourcePaths.h"
 
 #include <llvm/ADT/StringRef.h>
+#include <llvm/ADT/DenseSet.h>
+
+//#include <llvm/Support/SourceMgr.h>
+//#include <llvm/IRReader/IRReader.h>
+
+//#include <llvm/Bitcode/BitcodeReader.h>
+#include <llvm/Support/FileSystem.h>
+
+// UniqueID doesn't work in DenseSet
+#include <unordered_set>
 
 using namespace allvm;
 using namespace llvm;
@@ -71,4 +81,59 @@ BCDB::loadFromAllexesIn(StringRef InputDirectory, ResourcePaths &RP) {
   // * Subgraph <--> Analysis ?
 
   return std::move(DB);
+}
+
+template <>
+struct llvm::DenseMapInfo<llvm::sys::fs::UniqueID> {
+  using PairDMI = llvm::DenseMapInfo<std::pair<uint64_t,uint64_t>>;
+  using UniqueID = llvm::sys::fs::UniqueID;
+  static inline UniqueID getEmptyKey() {
+    auto Pair = PairDMI::getEmptyKey();
+    return {Pair.first, Pair.second};
+  }
+  static inline UniqueID getTombstoneKey() {
+    auto Pair = PairDMI::getTombstoneKey();
+    return {Pair.first, Pair.second};
+  }
+  static unsigned getHashValue(const UniqueID& Val) {
+    auto P = std::make_pair(Val.getDevice(), Val.getFile());
+    return PairDMI::getHashValue(P);
+  }
+  static inline bool isEqual(const UniqueID &LHS, const UniqueID &RHS) {
+    return LHS == RHS;
+  }
+};
+
+llvm::Expected<std::unique_ptr<BCDB>>
+BCDB::loadFromBitcodeIn(StringRef InputDirectory, ResourcePaths &) {
+  using namespace llvm::sys::fs;
+  auto DB = llvm::make_unique<BCDB>();
+
+  // std::unordered_set<UniqueID> BCIDs;
+  DenseSet<UniqueID> BCIDs;
+
+  auto addIfBC = [&](StringRef Path) -> Error {
+    file_magic magic;
+    if (auto EC = identify_magic(Path, magic)) {
+      errs() << "Error reading magic: " << Path << "\n";
+      return Error::success();
+    }
+    if (magic == file_magic::bitcode) {
+      UniqueID ID;
+      if (auto EC = getUniqueID(Path, ID)) {
+        errs() << "Error getting unique id: " << Path << "\n";
+        return Error::success();
+      }
+      if (BCIDs.insert(ID).second) {
+        DB->Infos.push_back({0, Path});
+      }
+    }
+
+    return Error::success();
+  };
+
+  if (auto Err = foreach_file_in_directory(InputDirectory, addIfBC))
+    return std::move(Err);
+
+  return DB;
 }
