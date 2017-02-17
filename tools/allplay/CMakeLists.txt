@@ -18,4 +18,6 @@ add_llvm_tool(allplay
 )
 target_link_libraries(allplay BCDB liball ResourcePaths)
 
+install(PROGRAMS csv2sqlite.sh DESTINATION bin)
+
 add_definitions(${LLVM_DEFINITIONS})
