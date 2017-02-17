@@ -56,6 +56,9 @@ cl::opt<unsigned>
 
 cl::opt<std::string> WriteCSV("write-csv", cl::Optional, cl::init(""),
                               cl::sub(FunctionHashes));
+cl::opt<bool> UseBCScanner("bc-scanner", cl::Optional, cl::init(false),
+                           cl::desc("Use BC scanner instead of allexe scanner"),
+                           cl::sub(FunctionHashes));
 
 using FunctionHash = FunctionComparator::FunctionHash;
 
@@ -268,16 +271,16 @@ Error functionHash(BCDB &DB) {
 }
 
 CommandRegistration Unused(&FunctionHashes, [](ResourcePaths &RP) -> Error {
-  // errs() << "Loading allexe's from " << InputDirectory << "...\n";
-  // auto ExpDB = BCDB::loadFromAllexesIn(InputDirectory, RP);
-  // if (!ExpDB)
-  //   return ExpDB.takeError();
-  // auto &DB = *ExpDB;
-  // errs() << "Done! Allexes found: " << DB->allexe_size() << "\n";
-  auto ExpDB = BCDB::loadFromBitcodeIn(InputDirectory, RP);
+  errs() << "Scanning " << InputDirectory << "...\n";
+
+  auto ExpDB = UseBCScanner ? BCDB::loadFromBitcodeIn(InputDirectory, RP)
+                            : BCDB::loadFromAllexesIn(InputDirectory, RP);
   if (!ExpDB)
     return ExpDB.takeError();
   auto &DB = *ExpDB;
+
+  errs() << "Done! Allexes found: " << DB->allexe_size() << "\n";
+  errs() << "Done! Modules found: " << DB->getMods().size() << "\n";
 
   return functionHash(*DB);
 });
