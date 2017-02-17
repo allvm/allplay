@@ -14,8 +14,8 @@
 #include "allvm/ModuleFlags.h"
 #include "allvm/ResourcePaths.h"
 
-#include <llvm/ADT/StringRef.h>
 #include <llvm/ADT/DenseSet.h>
+#include <llvm/ADT/StringRef.h>
 
 //#include <llvm/Support/SourceMgr.h>
 //#include <llvm/IRReader/IRReader.h>
@@ -83,9 +83,8 @@ BCDB::loadFromAllexesIn(StringRef InputDirectory, ResourcePaths &RP) {
   return std::move(DB);
 }
 
-template <>
-struct llvm::DenseMapInfo<llvm::sys::fs::UniqueID> {
-  using PairDMI = llvm::DenseMapInfo<std::pair<uint64_t,uint64_t>>;
+template <> struct llvm::DenseMapInfo<llvm::sys::fs::UniqueID> {
+  using PairDMI = llvm::DenseMapInfo<std::pair<uint64_t, uint64_t>>;
   using UniqueID = llvm::sys::fs::UniqueID;
   static inline UniqueID getEmptyKey() {
     auto Pair = PairDMI::getEmptyKey();
@@ -95,7 +94,7 @@ struct llvm::DenseMapInfo<llvm::sys::fs::UniqueID> {
     auto Pair = PairDMI::getTombstoneKey();
     return {Pair.first, Pair.second};
   }
-  static unsigned getHashValue(const UniqueID& Val) {
+  static unsigned getHashValue(const UniqueID &Val) {
     auto P = std::make_pair(Val.getDevice(), Val.getFile());
     return PairDMI::getHashValue(P);
   }
