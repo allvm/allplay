@@ -260,7 +260,7 @@ Error functionHash(BCDB &DB) {
     OS << "Source,FuncName,Insts,Hash\n";
     RANGES_FOR(const auto &Row, Functions) {
       OS << Row.Source << "," << Row.FuncName << "," << Row.Insts << ","
-         << Row.H << "\n";
+         << "H" << Row.H << "\n";
     }
 
     CSVFile.keep();
