@@ -268,12 +268,16 @@ Error functionHash(BCDB &DB) {
 }
 
 CommandRegistration Unused(&FunctionHashes, [](ResourcePaths &RP) -> Error {
-  errs() << "Loading allexe's from " << InputDirectory << "...\n";
-  auto ExpDB = BCDB::loadFromAllexesIn(InputDirectory, RP);
+ // errs() << "Loading allexe's from " << InputDirectory << "...\n";
+ // auto ExpDB = BCDB::loadFromAllexesIn(InputDirectory, RP);
+ // if (!ExpDB)
+ //   return ExpDB.takeError();
+ // auto &DB = *ExpDB;
+ // errs() << "Done! Allexes found: " << DB->allexe_size() << "\n";
+  auto ExpDB = BCDB::loadFromBitcodeIn(InputDirectory, RP);
   if (!ExpDB)
     return ExpDB.takeError();
   auto &DB = *ExpDB;
-  errs() << "Done! Allexes found: " << DB->allexe_size() << "\n";
 
   return functionHash(*DB);
 });
