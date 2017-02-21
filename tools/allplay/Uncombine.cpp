@@ -1,9 +1,9 @@
 #include "subcommand-registry.h"
 
+#include <llvm/ADT/StringExtras.h>
 #include <llvm/Bitcode/BitcodeReader.h>
 #include <llvm/IR/Module.h>
 #include <llvm/Support/FileSystem.h>
-#include <llvm/ADT/StringExtras.h>
 #include <llvm/Support/raw_ostream.h>
 
 using namespace allvm;
