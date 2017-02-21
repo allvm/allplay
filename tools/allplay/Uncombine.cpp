@@ -1,7 +1,9 @@
 #include "subcommand-registry.h"
 
+#include <llvm/ADT/SmallVector.h>
 #include <llvm/ADT/StringExtras.h>
 #include <llvm/Bitcode/BitcodeReader.h>
+#include <llvm/Bitcode/BitcodeWriter.h>
 #include <llvm/IR/Module.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/raw_ostream.h>
@@ -40,6 +42,9 @@ Error uncombineModule(StringRef Filename, StringRef Prefix) {
   if (!Mods)
     return Mods.takeError();
 
+  SmallVector<char, 0> Header;
+  BitcodeWriter Writer(Header);
+
   size_t N = 0;
   auto MaxWidth = utostr(Mods->size()).size(); // lol, n-1
   for (auto &BitcodeMod : *Mods) {
@@ -50,7 +55,8 @@ Error uncombineModule(StringRef Filename, StringRef Prefix) {
     if (EC)
       return make_error<StringError>(
           "cannot open " + ModFilename + ": " + EC.message(), EC);
-    OS.write(BitcodeMod.getBuffer().data(), BitcodeMod.getBuffer().size());
+
+    OS << Header << BitcodeMod.getBuffer();
   }
 
   return Error::success();
