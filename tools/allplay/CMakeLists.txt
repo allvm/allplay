@@ -13,6 +13,7 @@ add_llvm_tool(allplay
   FunctionHash.cpp
   Graph.cpp
   StringGraph.cpp
+  Uncombine.cpp
 
   subcommand-registry.cpp
 )
