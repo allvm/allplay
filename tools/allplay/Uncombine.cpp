@@ -1,11 +1,9 @@
 #include "subcommand-registry.h"
 
-#include "allvm/BCDB.h"
-
 #include <llvm/Bitcode/BitcodeReader.h>
-#include <llvm/Bitcode/BitcodeWriter.h>
 #include <llvm/IR/Module.h>
 #include <llvm/Support/FileSystem.h>
+#include <llvm/ADT/StringExtras.h>
 #include <llvm/Support/raw_ostream.h>
 
 using namespace allvm;
@@ -23,6 +21,15 @@ cl::opt<std::string> OutputPrefix("prefix", cl::Required,
                                   cl::desc("prefix to give modules"),
                                   cl::sub(Uncombine));
 
+std::string toPaddedDec(uint64_t N, unsigned W) {
+  // Get fixed-width decimal string for the number
+  auto S = utostr(N);
+  assert(S.size() <= W);
+  while (S.size() < W)
+    S = "0" + S;
+  return S;
+}
+
 Error uncombineModule(StringRef Filename, StringRef Prefix) {
   errs() << "Un-combining combined 'Module'...\n";
 
@@ -34,9 +41,11 @@ Error uncombineModule(StringRef Filename, StringRef Prefix) {
     return Mods.takeError();
 
   size_t N = 0;
+  auto MaxWidth = utostr(Mods->size()).size(); // lol, n-1
   for (auto &BitcodeMod : *Mods) {
     std::error_code EC;
-    std::string ModFilename = (Prefix + Twine(N++)).str();
+    auto S = toPaddedDec(N++, MaxWidth);
+    std::string ModFilename = (Prefix + S + ".bc").str();
     raw_fd_ostream OS(ModFilename, EC, sys::fs::OpenFlags::F_None);
     if (EC)
       return make_error<StringError>(
