@@ -11,15 +11,14 @@ using namespace allvm;
 
 namespace {
 
-cl::SubCommand Cypher("cypher",
-                              "Create cypher queries for allexe data");
+cl::SubCommand Cypher("cypher", "Create cypher queries for allexe data");
 cl::opt<std::string> InputDirectory(cl::Positional, cl::Required,
                                     cl::desc("<input directory to scan>"),
                                     cl::sub(Cypher));
 cl::opt<std::string>
     Output("o", cl::Required,
-               cl::desc("name of file to write Cypher query for allexe data"),
-               cl::sub(Cypher));
+           cl::desc("name of file to write Cypher query for allexe data"),
+           cl::sub(Cypher));
 
 Error cypher(BCDB &DB, StringRef Prefix, StringRef OutputFilename) {
   std::error_code EC;
@@ -40,9 +39,7 @@ Error cypher(BCDB &DB, StringRef Prefix, StringRef OutputFilename) {
     return S;
   };
 
-  auto basename = [](StringRef S) {
-    return S.rsplit('/').second;
-  };
+  auto basename = [](StringRef S) { return S.rsplit('/').second; };
 
   OS << "CREATE CONSTRAINT ON (m:Module) ASSERT m.CRC IS UNIQUE;\n";
   OS << "CREATE INDEX ON :Allexe(Name);\n";
@@ -52,40 +49,42 @@ Error cypher(BCDB &DB, StringRef Prefix, StringRef OutputFilename) {
 
   // Create module nodes
   size_t idx = 0;
-  for (auto &M: DB.getMods()) {
+  for (auto &M : DB.getMods()) {
     OS << "CREATE (:Module {";
     OS << "Name:\"" << basename(M.Filename) << "\", ";
     OS << "Path:\"" << removePrefix(M.Filename) << "\", ";
     OS << "CRC:" << M.ModuleCRC;
-    OS  << "})\n";
+    OS << "})\n";
     if (++idx == 500) {
       idx = 0;
       OS << ";\n";
     }
   }
 
-  if (idx != 0) OS << ";\n\n";
+  if (idx != 0)
+    OS << ";\n\n";
 
   OS << "CALL db.awaitIndex(\":Module(CRC)\");\n";
 
   // allexe nodes
-  for (auto &A: DB.getAllexes()) {
+  for (auto &A : DB.getAllexes()) {
     OS << "CREATE (:Allexe {";
     OS << "Name:\"" << basename(A.Filename) << "\", ";
     OS << "Path:\"" << removePrefix(A.Filename) << "\"";
-    OS  << "})\n";
+    OS << "})\n";
   }
 
   OS << ";\n\n";
 
   // emit allexe -> module relationships
   idx = 0;
-  for (auto &A: DB.getAllexes()) {
+  for (auto &A : DB.getAllexes()) {
     OS << "MATCH (a:Allexe {Path:\"" << removePrefix(A.Filename) << "\"})\n";
     size_t i = 0;
-    for (auto &M: A.Modules) {
+    for (auto &M : A.Modules) {
       OS << "\tMATCH (m" << idx << ":Module {CRC:" << M.ModuleCRC << "})\n";
-      OS << "\tCREATE UNIQUE (a)-[:CONTAINS {index:" << i++ << "}]->(m" << idx << ")\n";
+      OS << "\tCREATE UNIQUE (a)-[:CONTAINS {index:" << i++ << "}]->(m" << idx
+         << ")\n";
       ++idx;
     }
     OS << ";\n";

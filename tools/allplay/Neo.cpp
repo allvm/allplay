@@ -11,20 +11,21 @@ using namespace allvm;
 
 namespace {
 
-cl::SubCommand NeoCSV("neocsv",
-                              "Create CSV files for importing into neo4j");
+cl::SubCommand NeoCSV("neocsv", "Create CSV files for importing into neo4j");
 cl::opt<std::string> InputDirectory(cl::Positional, cl::Required,
                                     cl::desc("<input directory to scan>"),
                                     cl::sub(NeoCSV));
 cl::opt<std::string> ModOut("modules", cl::init("modules.csv"),
-  cl::desc("name of file to write module node data"),
-  cl::sub(NeoCSV));
-cl::opt<std::string> AllOut("allexes", cl::init("allexes.csv"),
-  cl::desc("name of file to write allexe module node data"),
-  cl::sub(NeoCSV));
-cl::opt<std::string> ContainsOut("contains", cl::init("contains.csv"),
-  cl::desc("name of file to write contains module node data"),
-  cl::sub(NeoCSV));
+                            cl::desc("name of file to write module node data"),
+                            cl::sub(NeoCSV));
+cl::opt<std::string>
+    AllOut("allexes", cl::init("allexes.csv"),
+           cl::desc("name of file to write allexe module node data"),
+           cl::sub(NeoCSV));
+cl::opt<std::string>
+    ContainsOut("contains", cl::init("contains.csv"),
+                cl::desc("name of file to write contains module node data"),
+                cl::sub(NeoCSV));
 
 Error neo(BCDB &DB, StringRef Prefix) {
   std::error_code EC;
@@ -53,21 +54,21 @@ Error neo(BCDB &DB, StringRef Prefix) {
     return S;
   };
 
-  auto basename = [](StringRef S) {
-    return S.rsplit('/').second;
-  };
+  auto basename = [](StringRef S) { return S.rsplit('/').second; };
 
   // Create module nodes
   ModS << "CRC:ID(Module),Name,Path\n";
-  for (auto &M: DB.getMods()) {
-    ModS << M.ModuleCRC << "," << basename(M.Filename) << "," << removePrefix(M.Filename) << "\n";
+  for (auto &M : DB.getMods()) {
+    ModS << M.ModuleCRC << "," << basename(M.Filename) << ","
+         << removePrefix(M.Filename) << "\n";
   }
 
   // allexe nodes
   AllS << "ID:ID(Allexe),Name,Path\n";
   for (size_t idx = 0; idx < DB.allexe_size(); ++idx) {
     auto &A = DB.getAllexes()[idx];
-    AllS << idx << "," << basename(A.Filename) << "," << removePrefix(A.Filename) << "\n";
+    AllS << idx << "," << basename(A.Filename) << ","
+         << removePrefix(A.Filename) << "\n";
   }
 
   // emit allexe -> module relationships

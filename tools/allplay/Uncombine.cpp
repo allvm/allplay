@@ -62,8 +62,9 @@ Error uncombineModule(StringRef Filename, StringRef Prefix) {
   return Error::success();
 }
 
-CommandRegistration Unused(&Uncombine, [](ResourcePaths &RP LLVM_ATTRIBUTE_UNUSED) -> Error {
-  return uncombineModule(InputFilename, OutputPrefix);
-});
+CommandRegistration
+    Unused(&Uncombine, [](ResourcePaths &RP LLVM_ATTRIBUTE_UNUSED) -> Error {
+      return uncombineModule(InputFilename, OutputPrefix);
+    });
 
 } // end anonymous namespace
