@@ -84,16 +84,19 @@ Error neo(BCDB &DB, StringRef Prefix) {
   AllOutFile.keep();
   ContainsOutFile.keep();
 
-  errs() << "Import using neo4j-import command like:\n";
+  errs() << "Import using 'neo4j-admin' command, something like:\n";
   errs() << "\n";
 
-  errs() << "neo4j-import \\\n";
-  errs() << "\t--into allexe.db \\\n";
-  errs() << "\t--id-type integer \\\n";
-  errs() << "\t--nodes:Module " << ModOut << " \\\n";
-  errs() << "\t--nodes:Allexe " << AllOut << " \\\n";
-  errs() << "\t--relationships:CONTAINS " << ContainsOut << " \n";
+  errs() << "sudo NEO4J_CONF=/var/lib/neo4j/conf \\\n";
+  errs() << "neo4j-admin import\\\n";
+  errs() << "\t--mode=csv \\\n";
+  errs() << "\t--id-type=INTEGER \\\n";
+  errs() << "\t--nodes:Module=" << ModOut << " \\\n";
+  errs() << "\t--nodes:Allexe=" << AllOut << " \\\n";
+  errs() << "\t--relationships:CONTAINS=" << ContainsOut << " \n";
 
+  errs() << "\n";
+  errs() << "Be sure to stop the database and remove it beforehand...\n";
 
   return Error::success();
 }
