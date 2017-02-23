@@ -5,11 +5,22 @@
 #include "allvm/BCDB.h"
 #include "allvm/ModuleFlags.h"
 
+#include <llvm/IR/Function.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IRReader/IRReader.h>
+#include <llvm/Support/Errc.h>
 #include <llvm/Support/FileSystem.h>
+#include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/ToolOutputFile.h>
+#include <llvm/Transforms/Utils/FunctionComparator.h>
+
+#include <algorithm>
+#include <functional>
 
 using namespace llvm;
 using namespace allvm;
+#include <numeric>
 
 namespace {
 
@@ -26,8 +37,8 @@ cl::opt<std::string>
            cl::sub(NeoCSV));
 cl::opt<std::string>
     FuncOut("funcs", cl::init("funcs.csv"),
-           cl::desc("name of file to write function node data"),
-           cl::sub(NeoCSV));
+            cl::desc("name of file to write function node data"),
+            cl::sub(NeoCSV));
 cl::opt<std::string>
     ModFuncsOut("modfuncs", cl::init("modfuncs.csv"),
                 cl::desc("name of file to write contains function rel data"),
@@ -36,6 +47,13 @@ cl::opt<std::string>
     ContainsOut("contains", cl::init("contains.csv"),
                 cl::desc("name of file to write contains mod rel data"),
                 cl::sub(NeoCSV));
+
+template <typename T> auto countInsts(const T *V) {
+  return std::accumulate(
+      V->begin(), V->end(), size_t{0},
+      [](auto N, auto &child) { return N + countInsts(&child); });
+}
+template <> auto countInsts(const BasicBlock *B) { return B->size(); }
 
 Error neo(BCDB &DB, StringRef Prefix) {
   std::error_code EC;
@@ -55,7 +73,7 @@ Error neo(BCDB &DB, StringRef Prefix) {
   if (EC)
     return make_error<StringError>("Unable to open file " + ContainsOut, EC);
   auto &ContainS = ContainsOutFile.os();
-  tool_output_file ModFuncOutFile(ModFuncsOut, EC, sys::fs::OpenFlags::F_Text);
+  tool_output_file ModFuncsOutFile(ModFuncsOut, EC, sys::fs::OpenFlags::F_Text);
   if (EC)
     return make_error<StringError>("Unable to open file " + ModFuncsOut, EC);
   auto &ModFuncS = ModFuncsOutFile.os();
@@ -78,10 +96,12 @@ Error neo(BCDB &DB, StringRef Prefix) {
 
   // Create module nodes
   ModS << "CRC:ID(Module),Name,Path\n";
-  Funcs << ":ID(Function),Name,Insts,Hash,ModuleID\n";
-  for (auto &M : DB.getMods()) {
-    ModS << M.ModuleCRC << "," << basename(M.Filename) << ","
-         << removePrefix(M.Filename) << "\n";
+  FuncS << ":ID(Function),Name,Insts,Hash,:LABEL\n";
+  ModFuncS << ":START_ID(Module),:END_ID(Function),:TYPE\n";
+  size_t FuncID = 0;
+  for (auto &MI : DB.getMods()) {
+    ModS << MI.ModuleCRC << "," << basename(MI.Filename) << ","
+         << removePrefix(MI.Filename) << "\n";
 
     SMDiagnostic SM;
     LLVMContext C;
@@ -93,12 +113,20 @@ Error neo(BCDB &DB, StringRef Prefix) {
       return Err;
 
     for (auto &F : *M) {
-      if (!F.isDeclaration())
-        FuncS << "h
+      FuncS << FuncID << "," << F.getName() << ",";
+      if (F.isDeclaration()) {
+        FuncS << "0,0,Declaration\n";
+      } else {
+        auto H = FunctionComparator::functionHash(F);
+        FuncS << countInsts(&F) << "," << H << ",Definition\n";
+      }
 
+      // Edge property redundant with node label, but oh well
+      auto ModFuncRel = F.isDeclaration() ? "DECLARES" : "DEFINES";
+      ModFuncS << MI.ModuleCRC << "," << FuncID << "," << ModFuncRel << "\n";
 
+      ++FuncID;
     }
-    
 
     ++mod_progress;
   }
@@ -137,7 +165,8 @@ Error neo(BCDB &DB, StringRef Prefix) {
   errs() << "\t--nodes:Module=" << ModOut << " \\\n";
   errs() << "\t--nodes:Function=" << FuncOut << " \\\n";
   errs() << "\t--nodes:Allexe=" << AllOut << " \\\n";
-  errs() << "\t--relationships:CONTAINS=" << ContainsOut << " \n";
+  errs() << "\t--relationships:CONTAINS=" << ContainsOut << " \\\n";
+  errs() << "\t--relationships=" << ModFuncsOut << " \n";
 
   errs() << "\n";
   errs() << "Be sure to stop the database and remove it beforehand...\n";
