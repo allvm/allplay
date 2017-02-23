@@ -23,7 +23,7 @@ cl::opt<std::string> OutputPrefix("prefix", cl::Required,
                                   cl::desc("prefix to give modules"),
                                   cl::sub(Uncombine));
 
-std::string toPaddedDec(uint64_t N, unsigned W) {
+std::string toPaddedDec(uint64_t N, size_t W) {
   // Get fixed-width decimal string for the number
   auto S = utostr(N);
   assert(S.size() <= W);
@@ -62,7 +62,7 @@ Error uncombineModule(StringRef Filename, StringRef Prefix) {
   return Error::success();
 }
 
-CommandRegistration Unused(&Uncombine, [](ResourcePaths &RP) -> Error {
+CommandRegistration Unused(&Uncombine, [](ResourcePaths &RP LLVM_ATTRIBUTE_UNUSED) -> Error {
   return uncombineModule(InputFilename, OutputPrefix);
 });
 
