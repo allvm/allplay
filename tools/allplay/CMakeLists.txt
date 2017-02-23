@@ -13,6 +13,7 @@ add_llvm_tool(allplay
   FindUses.cpp
   FunctionHash.cpp
   Graph.cpp
+  Neo.cpp
   StringGraph.cpp
   Uncombine.cpp
 
