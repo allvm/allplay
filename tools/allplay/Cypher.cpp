@@ -44,37 +44,51 @@ Error cypher(BCDB &DB, StringRef Prefix, StringRef OutputFilename) {
     return S.rsplit('/').second;
   };
 
+  OS << "CREATE CONSTRAINT ON (m:Module) ASSERT m.CRC IS UNIQUE;\n";
+  OS << "CREATE INDEX ON :Allexe(Name);\n";
+  OS << "CREATE INDEX ON :Allexe(Path);\n";
+  OS << "CREATE INDEX ON :Module(Name);\n";
+  OS << "CREATE INDEX ON :Module(Path);\n";
+
   // Create module nodes
-  // For now, assume index/etc already exists on :Module(Path)
+  size_t idx = 0;
   for (auto &M: DB.getMods()) {
-    OS << "MERGE (:Module {";
+    OS << "CREATE (:Module {";
     OS << "Name:\"" << basename(M.Filename) << "\", ";
     OS << "Path:\"" << removePrefix(M.Filename) << "\", ";
     OS << "CRC:" << M.ModuleCRC;
-    OS  << "});\n";
+    OS  << "})\n";
+    if (++idx == 500) {
+      idx = 0;
+      OS << ";\n";
+    }
   }
 
-  OS << "\n";
+  if (idx != 0) OS << ";\n\n";
+
+  OS << "CALL db.awaitIndex(\":Module(CRC)\");\n";
 
   // allexe nodes
   for (auto &A: DB.getAllexes()) {
-    OS << "MERGE (:Allexe {";
+    OS << "CREATE (:Allexe {";
     OS << "Name:\"" << basename(A.Filename) << "\", ";
     OS << "Path:\"" << removePrefix(A.Filename) << "\"";
-    OS  << "});\n";
+    OS  << "})\n";
   }
 
+  OS << ";\n\n";
+
   // emit allexe -> module relationships
+  idx = 0;
   for (auto &A: DB.getAllexes()) {
-    // OS << "MATCH (a:Allexe {Path:\"" << A.Filename << "\"})\n";
+    OS << "MATCH (a:Allexe {Path:\"" << removePrefix(A.Filename) << "\"})\n";
     size_t i = 0;
     for (auto &M: A.Modules) {
-      OS << "MATCH (a:Allexe {Path:\"" << removePrefix(A.Filename) << "\"})\n";
-      OS << "MATCH (m:Module {CRC:" << M.ModuleCRC << "})\n";
-      OS << "MERGE (a)-[:CONTAINS {index:" << i++ << "}]->(m);\n";
-      //OS << "\tCREATE UNIQUE (a)-[:CONTAINS]->(:Module {CRC:" << M.ModuleCRC << "})\n";
+      OS << "\tMATCH (m" << idx << ":Module {CRC:" << M.ModuleCRC << "})\n";
+      OS << "\tCREATE UNIQUE (a)-[:CONTAINS {index:" << i++ << "}]->(m" << idx << ")\n";
+      ++idx;
     }
-    //OS << ";\n";
+    OS << ";\n";
   }
 
   OutFile.keep();
