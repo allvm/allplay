@@ -11,22 +11,35 @@ using namespace allvm;
 
 namespace {
 
-cl::SubCommand Cypher("cypher",
-                              "Create cypher queries for allexe data");
+cl::SubCommand NeoCSV("neocsv",
+                              "Create CSV files for importing into neo4j");
 cl::opt<std::string> InputDirectory(cl::Positional, cl::Required,
                                     cl::desc("<input directory to scan>"),
-                                    cl::sub(Cypher));
-cl::opt<std::string>
-    Output("o", cl::Required,
-               cl::desc("name of file to write Cypher query for allexe data"),
-               cl::sub(Cypher));
+                                    cl::sub(NeoCSV));
+cl::opt<std::string> ModOut("modules", cl::init("modules.csv"),
+  cl::desc("name of file to write module node data"),
+  cl::sub(NeoCSV));
+cl::opt<std::string> AllOut("allexes", cl::init("allexes.csv"),
+  cl::desc("name of file to write allexe module node data"),
+  cl::sub(NeoCSV));
+cl::opt<std::string> ContainsOut("contains", cl::init("contains.csv"),
+  cl::desc("name of file to write contains module node data"),
+  cl::sub(NeoCSV));
 
-Error cypher(BCDB &DB, StringRef Prefix, StringRef OutputFilename) {
+Error neo(BCDB &DB, StringRef Prefix) {
   std::error_code EC;
-  tool_output_file OutFile(OutputFilename, EC, sys::fs::OpenFlags::F_Text);
+  tool_output_file ModOutFile(ModOut, EC, sys::fs::OpenFlags::F_Text);
   if (EC)
-    return make_error<StringError>("Unable to open file " + OutputFilename, EC);
-  auto &OS = OutFile.os();
+    return make_error<StringError>("Unable to open file " + ModOut, EC);
+  auto &ModS = ModOutFile.os();
+  tool_output_file AllOutFile(AllOut, EC, sys::fs::OpenFlags::F_Text);
+  if (EC)
+    return make_error<StringError>("Unable to open file " + AllOut, EC);
+  auto &AllS = AllOutFile.os();
+  tool_output_file ContainsOutFile(ContainsOut, EC, sys::fs::OpenFlags::F_Text);
+  if (EC)
+    return make_error<StringError>("Unable to open file " + ContainsOut, EC);
+  auto &ContainS = ContainsOutFile.os();
 
   // TODO: canonicalize all paths into nix store
   auto removePrefix = [Prefix](StringRef S) {
@@ -44,59 +57,48 @@ Error cypher(BCDB &DB, StringRef Prefix, StringRef OutputFilename) {
     return S.rsplit('/').second;
   };
 
-  OS << "CREATE CONSTRAINT ON (m:Module) ASSERT m.CRC IS UNIQUE;\n";
-  OS << "CREATE INDEX ON :Allexe(Name);\n";
-  OS << "CREATE INDEX ON :Allexe(Path);\n";
-  OS << "CREATE INDEX ON :Module(Name);\n";
-  OS << "CREATE INDEX ON :Module(Path);\n";
-
   // Create module nodes
-  size_t idx = 0;
+  ModS << "CRC:ID(Module),Name,Path\n";
   for (auto &M: DB.getMods()) {
-    OS << "CREATE (:Module {";
-    OS << "Name:\"" << basename(M.Filename) << "\", ";
-    OS << "Path:\"" << removePrefix(M.Filename) << "\", ";
-    OS << "CRC:" << M.ModuleCRC;
-    OS  << "})\n";
-    if (++idx == 500) {
-      idx = 0;
-      OS << ";\n";
-    }
+    ModS << M.ModuleCRC << "," << basename(M.Filename) << "," << removePrefix(M.Filename) << "\n";
   }
-
-  if (idx != 0) OS << ";\n\n";
-
-  OS << "CALL db.awaitIndex(\":Module(CRC)\");\n";
 
   // allexe nodes
-  for (auto &A: DB.getAllexes()) {
-    OS << "CREATE (:Allexe {";
-    OS << "Name:\"" << basename(A.Filename) << "\", ";
-    OS << "Path:\"" << removePrefix(A.Filename) << "\"";
-    OS  << "})\n";
+  AllS << "ID:ID(Allexe),Name,Path\n";
+  for (size_t idx = 0; idx < DB.allexe_size(); ++idx) {
+    auto &A = DB.getAllexes()[idx];
+    AllS << idx << "," << basename(A.Filename) << "," << removePrefix(A.Filename) << "\n";
   }
-
-  OS << ";\n\n";
 
   // emit allexe -> module relationships
-  idx = 0;
-  for (auto &A: DB.getAllexes()) {
-    OS << "MATCH (a:Allexe {Path:\"" << removePrefix(A.Filename) << "\"})\n";
-    size_t i = 0;
-    for (auto &M: A.Modules) {
-      OS << "\tMATCH (m" << idx << ":Module {CRC:" << M.ModuleCRC << "})\n";
-      OS << "\tCREATE UNIQUE (a)-[:CONTAINS {index:" << i++ << "}]->(m" << idx << ")\n";
-      ++idx;
+  ContainS << ":START_ID(Allexe),Index,:END_ID(Module)\n";
+  for (size_t idx = 0; idx < DB.allexe_size(); ++idx) {
+    auto &A = DB.getAllexes()[idx];
+    for (size_t i = 0; i < A.Modules.size(); ++i) {
+      auto &M = A.Modules[i];
+      ContainS << idx << "," << i << "," << M.ModuleCRC << "\n";
     }
-    OS << ";\n";
   }
 
-  OutFile.keep();
+  ModOutFile.keep();
+  AllOutFile.keep();
+  ContainsOutFile.keep();
+
+  errs() << "Import using neo4j-import command like:\n";
+  errs() << "\n";
+
+  errs() << "neo4j-import \\\n";
+  errs() << "\t--into allexe.db \\\n";
+  errs() << "\t--id-type integer \\\n";
+  errs() << "\t--nodes:Module " << ModOut << " \\\n";
+  errs() << "\t--nodes:Allexe " << AllOut << " \\\n";
+  errs() << "\t--relationships:CONTAINS " << ContainsOut << " \n";
+
 
   return Error::success();
 }
 
-CommandRegistration Unused(&Cypher, [](ResourcePaths &RP) -> Error {
+CommandRegistration Unused(&NeoCSV, [](ResourcePaths &RP) -> Error {
   errs() << "Scanning " << InputDirectory << "...\n";
 
   auto ExpDB = BCDB::loadFromAllexesIn(InputDirectory, RP);
@@ -106,7 +108,7 @@ CommandRegistration Unused(&Cypher, [](ResourcePaths &RP) -> Error {
 
   errs() << "Done! Allexes found: " << DB->allexe_size() << "\n";
 
-  return cypher(*DB, InputDirectory, Output);
+  return neo(*DB, InputDirectory);
 });
 
 } // end anonymous namespace
