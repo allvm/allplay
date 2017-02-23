@@ -96,7 +96,7 @@ Error neo(BCDB &DB, StringRef Prefix) {
 
   // Create module nodes
   ModS << "CRC:ID(Module),Name,Path\n";
-  FuncS << ":ID(Function),Name,Insts,Hash,:LABEL\n";
+  FuncS << ":ID(Function),Name,Insts:int,Hash:long,:LABEL\n";
   ModFuncS << ":START_ID(Module),:END_ID(Function),:TYPE\n";
   size_t FuncID = 0;
   for (auto &MI : DB.getMods()) {
