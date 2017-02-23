@@ -1,5 +1,7 @@
 #include "subcommand-registry.h"
 
+#include "boost_progress.h"
+
 #include "allvm/BCDB.h"
 #include "allvm/ModuleFlags.h"
 
@@ -23,8 +25,16 @@ cl::opt<std::string>
            cl::desc("name of file to write allexe module node data"),
            cl::sub(NeoCSV));
 cl::opt<std::string>
+    FuncOut("funcs", cl::init("funcs.csv"),
+           cl::desc("name of file to write function node data"),
+           cl::sub(NeoCSV));
+cl::opt<std::string>
+    ModFuncsOut("modfuncs", cl::init("modfuncs.csv"),
+                cl::desc("name of file to write contains function rel data"),
+                cl::sub(NeoCSV));
+cl::opt<std::string>
     ContainsOut("contains", cl::init("contains.csv"),
-                cl::desc("name of file to write contains module node data"),
+                cl::desc("name of file to write contains mod rel data"),
                 cl::sub(NeoCSV));
 
 Error neo(BCDB &DB, StringRef Prefix) {
@@ -33,6 +43,10 @@ Error neo(BCDB &DB, StringRef Prefix) {
   if (EC)
     return make_error<StringError>("Unable to open file " + ModOut, EC);
   auto &ModS = ModOutFile.os();
+  tool_output_file FuncOutFile(FuncOut, EC, sys::fs::OpenFlags::F_Text);
+  if (EC)
+    return make_error<StringError>("Unable to open file " + FuncOut, EC);
+  auto &FuncS = FuncOutFile.os();
   tool_output_file AllOutFile(AllOut, EC, sys::fs::OpenFlags::F_Text);
   if (EC)
     return make_error<StringError>("Unable to open file " + AllOut, EC);
@@ -41,6 +55,10 @@ Error neo(BCDB &DB, StringRef Prefix) {
   if (EC)
     return make_error<StringError>("Unable to open file " + ContainsOut, EC);
   auto &ContainS = ContainsOutFile.os();
+  tool_output_file ModFuncOutFile(ModFuncsOut, EC, sys::fs::OpenFlags::F_Text);
+  if (EC)
+    return make_error<StringError>("Unable to open file " + ModFuncsOut, EC);
+  auto &ModFuncS = ModFuncsOutFile.os();
 
   // TODO: canonicalize all paths into nix store
   auto removePrefix = [Prefix](StringRef S) {
@@ -56,11 +74,33 @@ Error neo(BCDB &DB, StringRef Prefix) {
 
   auto basename = [](StringRef S) { return S.rsplit('/').second; };
 
+  boost::progress_display mod_progress(DB.getMods().size());
+
   // Create module nodes
   ModS << "CRC:ID(Module),Name,Path\n";
+  Funcs << ":ID(Function),Name,Insts,Hash,ModuleID\n";
   for (auto &M : DB.getMods()) {
     ModS << M.ModuleCRC << "," << basename(M.Filename) << ","
          << removePrefix(M.Filename) << "\n";
+
+    SMDiagnostic SM;
+    LLVMContext C;
+    auto M = llvm::parseIRFile(MI.Filename, SM, C);
+    if (!M)
+      return make_error<StringError>(
+          "Unable to open module file " + MI.Filename, errc::invalid_argument);
+    if (auto Err = M->materializeAll())
+      return Err;
+
+    for (auto &F : *M) {
+      if (!F.isDeclaration())
+        FuncS << "h
+
+
+    }
+    
+
+    ++mod_progress;
   }
 
   // allexe nodes
@@ -82,6 +122,8 @@ Error neo(BCDB &DB, StringRef Prefix) {
   }
 
   ModOutFile.keep();
+  ModFuncsOutFile.keep();
+  FuncOutFile.keep();
   AllOutFile.keep();
   ContainsOutFile.keep();
 
@@ -93,6 +135,7 @@ Error neo(BCDB &DB, StringRef Prefix) {
   errs() << "\t--mode=csv \\\n";
   errs() << "\t--id-type=INTEGER \\\n";
   errs() << "\t--nodes:Module=" << ModOut << " \\\n";
+  errs() << "\t--nodes:Function=" << FuncOut << " \\\n";
   errs() << "\t--nodes:Allexe=" << AllOut << " \\\n";
   errs() << "\t--relationships:CONTAINS=" << ContainsOut << " \n";
 
