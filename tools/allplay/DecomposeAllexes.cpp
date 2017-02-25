@@ -71,7 +71,6 @@ Error decomposeAllexes(BCDB &DB) {
         MI.Filename, dir);
   }
 
-  errs() << "Waiting for threads to complete...\n";
   TP.wait();
 
   return Error::success();
