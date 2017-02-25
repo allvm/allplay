@@ -1,17 +1,18 @@
 #include "subcommand-registry.h"
 
-#include "llvm/ADT/StringExtras.h"
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/IRReader/IRReader.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/SourceMgr.h"
-#include "llvm/Support/ToolOutputFile.h"
-#include "llvm/Transforms/Utils/SplitModule.h"
+#include <llvm/ADT/StringExtras.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IRReader/IRReader.h>
+#include <llvm/Support/FileSystem.h>
+#include <llvm/Support/SourceMgr.h>
+#include <llvm/Support/ToolOutputFile.h>
+#include <llvm/Transforms/Utils/SplitModule.h>
 #include <llvm/Bitcode/BitcodeReader.h>
 #include <llvm/Bitcode/BitcodeWriter.h>
 #include <llvm/IR/Module.h>
 #include <llvm/Support/Errc.h>
 #include <llvm/Support/Error.h>
+#include <llvm/IR/LegacyPassManager.h>
 
 using namespace allvm;
 using namespace llvm;
