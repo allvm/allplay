@@ -109,10 +109,12 @@ Error decompose(StringRef BCFile, StringRef OutDir) {
                 Out.keep();
               },
               false /* PreserveLocals */);
+  if (DeferredErrors)
+    return DeferredErrors;
 
   errs() << "Partitions created: " << I << "\n";
-
   errs() << "Done!\n";
+
   return Error::success();
 }
 
