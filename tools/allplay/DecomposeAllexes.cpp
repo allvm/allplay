@@ -18,6 +18,7 @@
 #include <llvm/Support/Error.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/SourceMgr.h>
+#include <llvm/Support/ThreadPool.h>
 #include <llvm/Support/ToolOutputFile.h>
 #include <llvm/Transforms/IPO.h>
 #include <llvm/Transforms/Utils/SplitModule.h>
@@ -36,17 +37,35 @@ cl::SubCommand
 cl::opt<std::string> InputDirectory(cl::Positional, cl::Required,
                                     cl::desc("<input directory to scan>"),
                                     cl::sub(DecomposeAllexes));
+cl::opt<unsigned> Threads("j", cl::Optional, cl::init(0),
+                          cl::desc("Number of threads, 0 to auto-detect"));
 
 Error decomposeAllexes(BCDB &DB) {
-  StringRef OutDir = "bits";
-  boost::progress_display progress(DB.getMods().size());
+  StringRef OutBase = "bits";
+  unsigned NThreads = Threads;
+  if (NThreads == 0)
+    NThreads = std::thread::hardware_concurrency();
+  ThreadPool TP(NThreads);
+
+  // exit on error instead of propagating errors
+  // out of the thread pool safely
+  ExitOnError ExitOnErr("allplay decompose-allexes: ");
+
+  errs() << "Decomposing " << DB.getMods().size() << " modules,";
+  errs() << " using " << NThreads << " threads...\n";
+
   size_t I = 0;
   for (auto &MI : DB.getMods()) {
-    std::string dir = (OutDir + "/" + utostr(I++)).str();
-    if (auto Err = decompose(MI.Filename, dir, false))
-      return Err;
-    ++progress;
+    std::string dir = (OutBase + "/" + utostr(I++)).str();
+    TP.async(
+        [&ExitOnErr](auto Filename, auto OutDir) {
+          ExitOnErr(decompose(Filename, OutDir, false));
+        },
+        MI.Filename, dir);
   }
+
+  errs() << "Waiting for threads to complete...\n";
+  TP.wait();
 
   return Error::success();
 }
