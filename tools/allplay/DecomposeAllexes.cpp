@@ -38,8 +38,14 @@ cl::opt<std::string> InputDirectory(cl::Positional, cl::Required,
                                     cl::sub(DecomposeAllexes));
 
 Error decomposeAllexes(BCDB &DB) {
+  StringRef OutDir = "bits";
+  boost::progress_display progress(DB.getMods().size());
+  size_t I = 0;
   for (auto &MI : DB.getMods()) {
-    errs() << MI.Filename << "\n";
+    std::string dir = (OutDir + "/" + utostr(I++)).str();
+    if (auto Err = decompose(MI.Filename, dir, false))
+      return Err;
+    ++progress;
   }
 
   return Error::success();

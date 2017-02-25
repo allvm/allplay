@@ -6,7 +6,7 @@
 namespace allvm {
 
 llvm::Error decompose(llvm::StringRef BCFile, llvm::StringRef OutDir,
-                      bool ShowProgress);
+                      bool Verbose);
 
 } // end namespace allvm
 

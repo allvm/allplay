@@ -66,8 +66,9 @@ bool hasSymbolDefinition(llvm::Module *M) {
 
 } // end anonymous namespace
 
-Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool ShowProgress) {
-  errs() << "Loading file '" << BCFile << "'...\n";
+Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool Verbose) {
+  auto &OS = Verbose ? errs() : nulls();
+  OS << "Loading file '" << BCFile << "'...\n";
   LLVMContext C;
   SMDiagnostic Diag;
   auto M = parseIRFile(BCFile, Diag, C);
@@ -81,13 +82,13 @@ Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool ShowProgress) {
   if (auto EC = sys::fs::create_directories(OutDir))
     return errorCodeToError(EC);
 
-  errs() << "Splitting...\n";
+  OS << "Splitting...\n";
   // XXX: This is pretty kludgy-- we want something more direct than
   // using SplitModule and whatnot.  But it's a start.
   auto NumOutputs = unsigned(getSymCount(M.get()));
 
   std::unique_ptr<boost::progress_display> progress;
-  if (ShowProgress)
+  if (Verbose)
     progress.reset(new boost::progress_display(NumOutputs));
 
   legacy::PassManager PM;
@@ -98,12 +99,12 @@ Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool ShowProgress) {
   SplitModule(std::move(M), NumOutputs,
               [&](std::unique_ptr<Module> MPart) {
                 PM.run(*MPart);
-                if (ShowProgress)
+                if (Verbose)
                   ++*progress;
                 if (!hasSymbolDefinition(MPart.get()))
                   return;
                 if (DumpModules)
-                  errs() << "\nModule " << utostr(I) << ":\n";
+                  OS << "\nModule " << utostr(I) << ":\n";
                 std::error_code EC;
                 std::string OutName = (OutDir + "/" + utostr(I++)).str();
                 tool_output_file Out(OutName, EC, sys::fs::F_None);
@@ -113,7 +114,7 @@ Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool ShowProgress) {
                   return;
                 }
                 if (DumpModules)
-                  MPart->dump();
+                  MPart->dump(); // not to OS
 
                 WriteBitcodeToFile(MPart.get(), Out.os());
 
@@ -123,8 +124,8 @@ Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool ShowProgress) {
   if (DeferredErrors)
     return DeferredErrors;
 
-  errs() << "Partitions created: " << I << "\n";
-  errs() << "Done!\n";
+  OS << "Partitions created: " << I << "\n";
+  OS << "Done!\n";
 
   return Error::success();
 }
