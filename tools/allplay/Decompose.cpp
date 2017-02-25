@@ -73,52 +73,44 @@ Error decompose(StringRef BCFile, StringRef OutDir) {
   if (auto Err = M->materializeAll())
     return Err;
 
+  if (auto EC = sys::fs::create_directories(OutDir))
+    return errorCodeToError(EC);
+
   errs() << "Splitting...\n";
   // XXX: This is pretty kludgy-- we want something more direct than
   // using SplitModule and whatnot.  But it's a start.
   auto NumOutputs = unsigned(getSymCount(M.get()));
-  std::vector<std::unique_ptr<Module>> Parts;
+
+  legacy::PassManager PM;
+  PM.add(createGlobalOptimizerPass());
+
+  unsigned I = 0;
+  llvm::Error DeferredErrors = Error::success();
   SplitModule(std::move(M), NumOutputs,
               [&](std::unique_ptr<Module> MPart) {
-                Parts.emplace_back(std::move(MPart));
+                PM.run(*MPart);
+                if (!hasSymbolDefinition(MPart.get()))
+                  return;
+                if (DumpModules)
+                  errs() << "\nModule " << utostr(I) << ":\n";
+                std::error_code EC;
+                std::string OutName = (OutDir + "/" + utostr(I++)).str();
+                tool_output_file Out(OutName, EC, sys::fs::F_None);
+                if (EC) {
+                  DeferredErrors = joinErrors(std::move(DeferredErrors),
+                                              errorCodeToError(EC));
+                  return;
+                }
+                if (DumpModules)
+                  MPart->dump();
+
+                WriteBitcodeToFile(MPart.get(), Out.os());
+
+                Out.keep();
               },
               false /* PreserveLocals */);
 
-  errs() << "Post-processing split modules...\n";
-  legacy::PassManager PM;
-  PM.add(createGlobalOptimizerPass());
-  for (auto &MPart : Parts) {
-    PM.run(*MPart);
-  }
-
-  Parts.erase(std::remove_if(Parts.begin(), Parts.end(),
-                             [](auto &MPart) {
-                               return !hasSymbolDefinition(MPart.get());
-                             }),
-              Parts.end());
-  errs() << "Partitions: " << Parts.size() << "\n";
-
-  errs() << "Writing modules to directory '" << OutDir << "'...\n";
-  if (auto EC = sys::fs::create_directories(OutDir))
-    return errorCodeToError(EC);
-
-  unsigned I = 0;
-  for (auto &MPart : Parts) {
-    if (DumpModules)
-      errs() << "\nModule " << utostr(I) << ":\n";
-    std::error_code EC;
-    std::string OutName = (OutDir + "/" + utostr(I++)).str();
-    tool_output_file Out(OutName, EC, sys::fs::F_None);
-    if (EC)
-      return errorCodeToError(EC);
-
-    if (DumpModules)
-      MPart->dump();
-
-    WriteBitcodeToFile(MPart.get(), Out.os());
-
-    Out.keep();
-  }
+  errs() << "Partitions created: " << I << "\n";
 
   errs() << "Done!\n";
   return Error::success();
