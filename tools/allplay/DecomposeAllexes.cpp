@@ -24,6 +24,7 @@
 #include <llvm/Transforms/Utils/SplitModule.h>
 
 #include <algorithm>
+#include <mutex>
 #include <vector>
 
 using namespace allvm;
@@ -40,6 +41,8 @@ cl::opt<std::string> InputDirectory(cl::Positional, cl::Required,
 cl::opt<unsigned> Threads("j", cl::Optional, cl::init(0),
                           cl::desc("Number of threads, 0 to auto-detect"));
 
+std::mutex ProgressMtx;
+
 Error decomposeAllexes(BCDB &DB) {
   StringRef OutBase = "bits";
   unsigned NThreads = Threads;
@@ -54,12 +57,16 @@ Error decomposeAllexes(BCDB &DB) {
   errs() << "Decomposing " << DB.getMods().size() << " modules,";
   errs() << " using " << NThreads << " threads...\n";
 
+  boost::progress_display progress(DB.getMods().size());
+
   size_t I = 0;
   for (auto &MI : DB.getMods()) {
     std::string dir = (OutBase + "/" + utostr(I++)).str();
     TP.async(
-        [&ExitOnErr](auto Filename, auto OutDir) {
+        [&ExitOnErr, &progress](auto Filename, auto OutDir) {
           ExitOnErr(decompose(Filename, OutDir, false));
+          std::lock_guard<std::mutex> Lock(ProgressMtx);
+          ++progress;
         },
         MI.Filename, dir);
   }
