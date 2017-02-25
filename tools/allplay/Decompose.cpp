@@ -8,6 +8,7 @@
 #include <llvm/IR/Module.h>
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/Object/ModuleSymbolTable.h>
+#include <llvm/Object/ObjectFile.h>
 #include <llvm/Support/Errc.h>
 #include <llvm/Support/Error.h>
 #include <llvm/Support/FileSystem.h>
@@ -15,7 +16,6 @@
 #include <llvm/Support/ToolOutputFile.h>
 #include <llvm/Transforms/IPO.h>
 #include <llvm/Transforms/Utils/SplitModule.h>
-#include <llvm/Object/ObjectFile.h>
 
 #include <algorithm>
 #include <vector>
@@ -34,15 +34,16 @@ cl::opt<std::string> InputFile(cl::Positional, cl::Required,
 cl::opt<std::string> OutputDirectory("o", cl::Required,
                                      cl::desc("Path to write fragments"),
                                      cl::sub(Decompose));
-cl::opt<bool> DumpModules("dump", cl::Optional, cl::init(false),
-    cl::desc("Dump modules before writing them, use with caution."),
-    cl::sub(Decompose));
+cl::opt<bool>
+    DumpModules("dump", cl::Optional, cl::init(false),
+                cl::desc("Dump modules before writing them, use with caution."),
+                cl::sub(Decompose));
 
 bool hasSymbolDefinition(llvm::Module *M) {
   ModuleSymbolTable MST;
   MST.addModule(M);
 
-  for (auto &S: MST.symbols()) {
+  for (auto &S : MST.symbols()) {
     auto Flags = MST.getSymbolFlags(S);
     if (Flags & object::SymbolRef::SF_Undefined)
       continue;
@@ -82,9 +83,11 @@ Error decompose(StringRef BCFile, StringRef OutDir) {
     PM.run(*MPart);
   }
 
-  Parts.erase(std::remove_if(Parts.begin(), Parts.end(),[](auto &MPart) {
-          return !hasSymbolDefinition(MPart.get());
-        }), Parts.end());
+  Parts.erase(std::remove_if(Parts.begin(), Parts.end(),
+                             [](auto &MPart) {
+                               return !hasSymbolDefinition(MPart.get());
+                             }),
+              Parts.end());
   errs() << "Partitions: " << Parts.size() << "\n";
 
   errs() << "Writing modules to directory '" << OutDir << "'...\n";
