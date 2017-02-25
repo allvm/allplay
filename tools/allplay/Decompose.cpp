@@ -39,6 +39,14 @@ cl::opt<bool>
                 cl::desc("Dump modules before writing them, use with caution."),
                 cl::sub(Decompose));
 
+// defined, undefined, whatever
+auto getSymCount(llvm::Module *M) {
+  ModuleSymbolTable MST;
+  MST.addModule(M);
+
+  return MST.symbols().size();
+}
+
 bool hasSymbolDefinition(llvm::Module *M) {
   ModuleSymbolTable MST;
   MST.addModule(M);
@@ -68,7 +76,7 @@ Error decompose(StringRef BCFile, StringRef OutDir) {
   errs() << "Splitting...\n";
   // XXX: This is pretty kludgy-- we want something more direct than
   // using SplitModule and whatnot.  But it's a start.
-  unsigned NumOutputs = 1000; // M->global_objects());
+  auto NumOutputs = unsigned(getSymCount(M.get()));
   std::vector<std::unique_ptr<Module>> Parts;
   SplitModule(std::move(M), NumOutputs,
               [&](std::unique_ptr<Module> MPart) {
