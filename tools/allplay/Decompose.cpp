@@ -1,5 +1,7 @@
 #include "subcommand-registry.h"
 
+#include "boost_progress.h"
+
 #include <llvm/ADT/StringExtras.h>
 #include <llvm/Bitcode/BitcodeReader.h>
 #include <llvm/Bitcode/BitcodeWriter.h>
@@ -47,18 +49,19 @@ auto getSymCount(llvm::Module *M) {
   return MST.symbols().size();
 }
 
-bool hasSymbolDefinition(llvm::Module *M) {
+bool countSymbolDefinitions(llvm::Module *M) {
   ModuleSymbolTable MST;
   MST.addModule(M);
 
+  size_t defs = 0;
   for (auto &S : MST.symbols()) {
     auto Flags = MST.getSymbolFlags(S);
     if (Flags & object::SymbolRef::SF_Undefined)
       continue;
-    return true;
+    ++defs;
   }
 
-  return false;
+  return defs;
 }
 
 Error decompose(StringRef BCFile, StringRef OutDir) {
@@ -81,6 +84,8 @@ Error decompose(StringRef BCFile, StringRef OutDir) {
   // using SplitModule and whatnot.  But it's a start.
   auto NumOutputs = unsigned(getSymCount(M.get()));
 
+  boost::progress_display progress(countSymbolDefinitions(M.get()));
+
   legacy::PassManager PM;
   PM.add(createGlobalOptimizerPass());
 
@@ -89,8 +94,11 @@ Error decompose(StringRef BCFile, StringRef OutDir) {
   SplitModule(std::move(M), NumOutputs,
               [&](std::unique_ptr<Module> MPart) {
                 PM.run(*MPart);
-                if (!hasSymbolDefinition(MPart.get()))
+                // XXX: Doing this after opts might make count wrong
+                auto NumDefs = countSymbolDefinitions(MPart.get());
+                if (NumDefs == 0)
                   return;
+                progress += NumDefs;
                 if (DumpModules)
                   errs() << "\nModule " << utostr(I) << ":\n";
                 std::error_code EC;
