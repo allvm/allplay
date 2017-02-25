@@ -12,6 +12,7 @@ add_llvm_tool(allplay
   CombinedModule.cpp
   Cypher.cpp
   Decompose.cpp
+  DecomposeAllexes.cpp
   FindUses.cpp
   FunctionHash.cpp
   Graph.cpp

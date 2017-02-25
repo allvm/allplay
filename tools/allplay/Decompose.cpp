@@ -1,6 +1,7 @@
-#include "subcommand-registry.h"
+#include "Decompose.h"
 
 #include "boost_progress.h"
+#include "subcommand-registry.h"
 
 #include <llvm/ADT/StringExtras.h>
 #include <llvm/Bitcode/BitcodeReader.h>
@@ -63,7 +64,9 @@ bool hasSymbolDefinition(llvm::Module *M) {
   return false;
 }
 
-Error decompose(StringRef BCFile, StringRef OutDir) {
+} // end anonymous namespace
+
+Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool ShowProgress) {
   errs() << "Loading file '" << BCFile << "'...\n";
   LLVMContext C;
   SMDiagnostic Diag;
@@ -83,7 +86,9 @@ Error decompose(StringRef BCFile, StringRef OutDir) {
   // using SplitModule and whatnot.  But it's a start.
   auto NumOutputs = unsigned(getSymCount(M.get()));
 
-  boost::progress_display progress(NumOutputs);
+  std::unique_ptr<boost::progress_display> progress;
+  if (ShowProgress)
+    progress.reset(new boost::progress_display(NumOutputs));
 
   legacy::PassManager PM;
   PM.add(createGlobalOptimizerPass());
@@ -93,7 +98,8 @@ Error decompose(StringRef BCFile, StringRef OutDir) {
   SplitModule(std::move(M), NumOutputs,
               [&](std::unique_ptr<Module> MPart) {
                 PM.run(*MPart);
-                ++progress;
+                if (ShowProgress)
+                  ++*progress;
                 if (!hasSymbolDefinition(MPart.get()))
                   return;
                 if (DumpModules)
@@ -123,9 +129,9 @@ Error decompose(StringRef BCFile, StringRef OutDir) {
   return Error::success();
 }
 
+namespace {
 CommandRegistration
     Unused(&Decompose, [](ResourcePaths &RP LLVM_ATTRIBUTE_UNUSED) -> Error {
-      return decompose(InputFile, OutputDirectory);
+      return decompose(InputFile, OutputDirectory, true);
     });
-
 } // end anonymous namespace
