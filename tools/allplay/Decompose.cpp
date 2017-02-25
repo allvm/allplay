@@ -7,12 +7,18 @@
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IRReader/IRReader.h>
+#include <llvm/Object/ModuleSymbolTable.h>
 #include <llvm/Support/Errc.h>
 #include <llvm/Support/Error.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/ToolOutputFile.h>
+#include <llvm/Transforms/IPO.h>
 #include <llvm/Transforms/Utils/SplitModule.h>
+#include <llvm/Object/ObjectFile.h>
+
+#include <algorithm>
+#include <vector>
 
 using namespace allvm;
 using namespace llvm;
@@ -28,32 +34,26 @@ cl::opt<std::string> InputFile(cl::Positional, cl::Required,
 cl::opt<std::string> OutputDirectory("o", cl::Required,
                                      cl::desc("Path to write fragments"),
                                      cl::sub(Decompose));
+cl::opt<bool> DumpModules("dump", cl::Optional, cl::init(false),
+    cl::desc("Dump modules before writing them, use with caution."),
+    cl::sub(Decompose));
 
-// This snippet taken from ThinLTOBitcodeWriter, repurposed:
-// Even modules that don't export could have initializers..
-bool exportsSymbol(llvm::Module *M) {
-  bool ExportsSymbols = false;
-  auto AddGlobal = [&](GlobalValue &GV) {
-    if (GV.isDeclaration() || GV.getName().startswith("llvm.") ||
-        !GV.hasExternalLinkage())
-      return;
-    ExportsSymbols = true;
-  };
+bool hasSymbolDefinition(llvm::Module *M) {
+  ModuleSymbolTable MST;
+  MST.addModule(M);
 
-  // TODO: Early exit would be nice :P
-  for (auto &F : *M)
-    AddGlobal(F);
-  for (auto &GV : M->globals())
-    AddGlobal(GV);
-  for (auto &GA : M->aliases())
-    AddGlobal(GA);
-  for (auto &IF : M->ifuncs())
-    AddGlobal(IF);
+  for (auto &S: MST.symbols()) {
+    auto Flags = MST.getSymbolFlags(S);
+    if (Flags & object::SymbolRef::SF_Undefined)
+      continue;
+    return true;
+  }
 
-  return ExportsSymbols;
+  return false;
 }
 
 Error decompose(StringRef BCFile, StringRef OutDir) {
+  errs() << "Loading file '" << BCFile << "'...\n";
   LLVMContext C;
   SMDiagnostic Diag;
   auto M = parseIRFile(BCFile, Diag, C);
@@ -64,6 +64,7 @@ Error decompose(StringRef BCFile, StringRef OutDir) {
   if (auto Err = M->materializeAll())
     return Err;
 
+  errs() << "Splitting...\n";
   // XXX: This is pretty kludgy-- we want something more direct than
   // using SplitModule and whatnot.  But it's a start.
   unsigned NumOutputs = 1000; // M->global_objects());
@@ -74,32 +75,41 @@ Error decompose(StringRef BCFile, StringRef OutDir) {
               },
               false /* PreserveLocals */);
 
-  // TODO: Filter out useless modules
-  // TODO: global-opt?
-
-  size_t ModsWithoutExports = 0;
+  errs() << "Post-processing split modules...\n";
+  legacy::PassManager PM;
+  PM.add(createGlobalOptimizerPass());
   for (auto &MPart : Parts) {
-    if (!exportsSymbol(MPart.get()))
-      ++ModsWithoutExports;
+    PM.run(*MPart);
   }
-  errs() << "ModsWithoutExports: " << ModsWithoutExports << "\n";
 
+  Parts.erase(std::remove_if(Parts.begin(), Parts.end(),[](auto &MPart) {
+          return !hasSymbolDefinition(MPart.get());
+        }), Parts.end());
+  errs() << "Partitions: " << Parts.size() << "\n";
+
+  errs() << "Writing modules to directory '" << OutDir << "'...\n";
   if (auto EC = sys::fs::create_directories(OutDir))
     return errorCodeToError(EC);
 
   unsigned I = 0;
   for (auto &MPart : Parts) {
+    if (DumpModules)
+      errs() << "\nModule " << utostr(I) << ":\n";
     std::error_code EC;
     std::string OutName = (OutDir + "/" + utostr(I++)).str();
     tool_output_file Out(OutName, EC, sys::fs::F_None);
     if (EC)
       return errorCodeToError(EC);
 
+    if (DumpModules)
+      MPart->dump();
+
     WriteBitcodeToFile(MPart.get(), Out.os());
 
     Out.keep();
   }
 
+  errs() << "Done!\n";
   return Error::success();
 }
 
