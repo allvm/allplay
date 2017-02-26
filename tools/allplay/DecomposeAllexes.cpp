@@ -39,7 +39,8 @@ cl::opt<std::string> InputDirectory(cl::Positional, cl::Required,
                                     cl::desc("<input directory to scan>"),
                                     cl::sub(DecomposeAllexes));
 cl::opt<unsigned> Threads("j", cl::Optional, cl::init(0),
-                          cl::desc("Number of threads, 0 to auto-detect"));
+                          cl::desc("Number of threads, 0 to auto-detect"),
+                          cl::sub(DecomposeAllexes));
 
 std::mutex ProgressMtx;
 
