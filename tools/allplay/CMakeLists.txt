@@ -1,8 +1,14 @@
 set(LLVM_LINK_COMPONENTS
+  ${LLVM_TARGETS_TO_BUILD}
+  AsmParser
+  AsmPrinter
   BitReader
   BitWriter
   Core
   IPO
+  MC
+  MCParser
+  Object
   Support
 )
 

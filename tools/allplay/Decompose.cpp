@@ -98,9 +98,9 @@ Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool Verbose) {
   llvm::Error DeferredErrors = Error::success();
   SplitModule(std::move(M), NumOutputs,
               [&](std::unique_ptr<Module> MPart) {
-                PM.run(*MPart);
                 if (Verbose)
                   ++*progress;
+                PM.run(*MPart);
                 if (!hasSymbolDefinition(MPart.get()))
                   return;
                 if (DumpModules)
