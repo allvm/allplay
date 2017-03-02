@@ -134,5 +134,5 @@ BCDB::loadFromBitcodeIn(StringRef InputDirectory, ResourcePaths &) {
   if (auto Err = foreach_file_in_directory(InputDirectory, addIfBC))
     return std::move(Err);
 
-  return DB;
+  return std::move(DB);
 }
