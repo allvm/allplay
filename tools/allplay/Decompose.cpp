@@ -66,7 +66,7 @@ bool hasSymbolDefinition(llvm::Module *M) {
 
 } // end anonymous namespace
 
-Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool Verbose) {
+Error allvm::decompose(StringRef BCFile, StringRef OutDir, unsigned NumPartitions, bool Verbose) {
   auto &OS = Verbose ? errs() : nulls();
   OS << "Loading file '" << BCFile << "'...\n";
   LLVMContext C;
@@ -85,7 +85,7 @@ Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool Verbose) {
   OS << "Splitting...\n";
   // XXX: This is pretty kludgy-- we want something more direct than
   // using SplitModule and whatnot.  But it's a start.
-  auto NumOutputs = unsigned(getSymCount(M.get()));
+  auto NumOutputs = (NumPartitions != 0)? NumPartitions : unsigned(getSymCount(M.get()));
 
   std::unique_ptr<boost::progress_display> progress;
   if (Verbose)
@@ -133,6 +133,6 @@ Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool Verbose) {
 namespace {
 CommandRegistration
     Unused(&Decompose, [](ResourcePaths &RP LLVM_ATTRIBUTE_UNUSED) -> Error {
-      return decompose(InputFile, OutputDirectory, true);
+      return decompose(InputFile, OutputDirectory, 0 /* auto */, true);
     });
 } // end anonymous namespace
