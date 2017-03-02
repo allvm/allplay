@@ -25,7 +25,7 @@ using HandlerType = std::function<Error(ResourcePaths &)>;
 
 ManagedStatic<std::unordered_map<cl::SubCommand *, HandlerType>> Commands;
 
-} // end anonymous allvm
+} // end anonymous namespace
 
 namespace allvm {
 
@@ -44,4 +44,4 @@ HandlerType dispatch(cl::SubCommand *SC) {
   return It->second;
 }
 
-} // namespace allvm
+} // end namespace allvm
