@@ -40,13 +40,17 @@ cl::opt<std::string>
             cl::desc("name of file to write function node data"),
             cl::sub(NeoCSV));
 cl::opt<std::string>
-    ModFuncsOut("modfuncs", cl::init("modfuncs.csv"),
+    ModGlobalsOut("modglobals", cl::init("modglobals.csv"),
                 cl::desc("name of file to write contains function rel data"),
                 cl::sub(NeoCSV));
 cl::opt<std::string>
     ContainsOut("contains", cl::init("contains.csv"),
                 cl::desc("name of file to write contains mod rel data"),
                 cl::sub(NeoCSV));
+cl::opt<std::string>
+    AliasOut("aliases", cl::init("aliases.csv"),
+               cl::desc("name of file to write aliases node data"),
+               cl::sub(NeoCSV));
 
 template <typename T> auto countInsts(const T *V) {
   return std::accumulate(
@@ -73,10 +77,14 @@ Error neo(BCDB &DB, StringRef Prefix) {
   if (EC)
     return make_error<StringError>("Unable to open file " + ContainsOut, EC);
   auto &ContainS = ContainsOutFile.os();
-  tool_output_file ModFuncsOutFile(ModFuncsOut, EC, sys::fs::OpenFlags::F_Text);
+  tool_output_file ModGlobalsOutFile(ModGlobalsOut, EC, sys::fs::OpenFlags::F_Text);
   if (EC)
-    return make_error<StringError>("Unable to open file " + ModFuncsOut, EC);
-  auto &ModFuncS = ModFuncsOutFile.os();
+    return make_error<StringError>("Unable to open file " + ModGlobalsOut, EC);
+  auto &ModGlobalS = ModGlobalsOutFile.os();
+  tool_output_file AliasOutFile(AliasOut, EC, sys::fs::OpenFlags::F_Text);
+  if (EC)
+    return make_error<StringError>("Unable to open file " + AliasOut, EC);
+  auto &AliasS = AliasOutFile.os();
 
   // TODO: canonicalize all paths into nix store
   auto removePrefix = [Prefix](StringRef S) {
@@ -96,9 +104,10 @@ Error neo(BCDB &DB, StringRef Prefix) {
 
   // Create module nodes
   ModS << "CRC:ID(Module),Name,Path\n";
-  FuncS << ":ID(Function),Name,Insts:int,Hash:long,:LABEL\n";
-  ModFuncS << ":START_ID(Module),:END_ID(Function),:TYPE\n";
-  size_t FuncID = 0;
+  FuncS << ":ID(Global),Name,Insts:int,Hash:long,:LABEL\n";
+  AliasS << ":ID(Global),Name,Aliasee\n"; // XXX: Add info
+  ModGlobalS << ":START_ID(Module),:END_ID(Global),:TYPE\n";
+  size_t GlobalID = 0;
   for (auto &MI : DB.getMods()) {
     ModS << MI.ModuleCRC << "," << basename(MI.Filename) << ","
          << removePrefix(MI.Filename) << "\n";
@@ -113,7 +122,7 @@ Error neo(BCDB &DB, StringRef Prefix) {
       return Err;
 
     for (auto &F : *M) {
-      FuncS << FuncID << "," << F.getName() << ",";
+      FuncS << GlobalID << "," << F.getName() << ",";
       if (F.isDeclaration()) {
         FuncS << "0,0,Declaration\n";
       } else {
@@ -123,9 +132,17 @@ Error neo(BCDB &DB, StringRef Prefix) {
 
       // Edge property redundant with node label, but oh well
       auto ModFuncRel = F.isDeclaration() ? "DECLARES" : "DEFINES";
-      ModFuncS << MI.ModuleCRC << "," << FuncID << "," << ModFuncRel << "\n";
+      ModGlobalS << MI.ModuleCRC << "," << GlobalID << "," << ModFuncRel << "\n";
 
-      ++FuncID;
+      ++GlobalID;
+    }
+
+    for (auto &A : M->aliases()) {
+      AliasS << GlobalID << "," << A.getName() << "," << A.getAliasee()->getName() << "\n";
+
+      ModGlobalS << MI.ModuleCRC << "," << GlobalID << "," << "DEFINES\n";
+
+      ++GlobalID;
     }
 
     ++mod_progress;
@@ -150,7 +167,8 @@ Error neo(BCDB &DB, StringRef Prefix) {
   }
 
   ModOutFile.keep();
-  ModFuncsOutFile.keep();
+  ModGlobalsOutFile.keep();
+  AliasOutFile.keep();
   FuncOutFile.keep();
   AllOutFile.keep();
   ContainsOutFile.keep();
@@ -164,9 +182,10 @@ Error neo(BCDB &DB, StringRef Prefix) {
   errs() << "\t--id-type=INTEGER \\\n";
   errs() << "\t--nodes:Module=" << ModOut << " \\\n";
   errs() << "\t--nodes:Function=" << FuncOut << " \\\n";
+  errs() << "\t--nodes:Alias=" << AliasOut << " \\\n";
   errs() << "\t--nodes:Allexe=" << AllOut << " \\\n";
   errs() << "\t--relationships:CONTAINS=" << ContainsOut << " \\\n";
-  errs() << "\t--relationships=" << ModFuncsOut << " \n";
+  errs() << "\t--relationships=" << ModGlobalsOut << " \n";
 
   errs() << "\n";
   errs() << "Be sure to stop the database and remove it beforehand...\n";
