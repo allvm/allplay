@@ -41,16 +41,16 @@ cl::opt<std::string>
             cl::sub(NeoCSV));
 cl::opt<std::string>
     ModGlobalsOut("modglobals", cl::init("modglobals.csv"),
-                cl::desc("name of file to write contains function rel data"),
-                cl::sub(NeoCSV));
+                  cl::desc("name of file to write contains function rel data"),
+                  cl::sub(NeoCSV));
 cl::opt<std::string>
     ContainsOut("contains", cl::init("contains.csv"),
                 cl::desc("name of file to write contains mod rel data"),
                 cl::sub(NeoCSV));
 cl::opt<std::string>
     AliasOut("aliases", cl::init("aliases.csv"),
-               cl::desc("name of file to write aliases node data"),
-               cl::sub(NeoCSV));
+             cl::desc("name of file to write aliases node data"),
+             cl::sub(NeoCSV));
 
 template <typename T> auto countInsts(const T *V) {
   return std::accumulate(
@@ -77,7 +77,8 @@ Error neo(BCDB &DB, StringRef Prefix) {
   if (EC)
     return make_error<StringError>("Unable to open file " + ContainsOut, EC);
   auto &ContainS = ContainsOutFile.os();
-  tool_output_file ModGlobalsOutFile(ModGlobalsOut, EC, sys::fs::OpenFlags::F_Text);
+  tool_output_file ModGlobalsOutFile(ModGlobalsOut, EC,
+                                     sys::fs::OpenFlags::F_Text);
   if (EC)
     return make_error<StringError>("Unable to open file " + ModGlobalsOut, EC);
   auto &ModGlobalS = ModGlobalsOutFile.os();
@@ -132,15 +133,18 @@ Error neo(BCDB &DB, StringRef Prefix) {
 
       // Edge property redundant with node label, but oh well
       auto ModFuncRel = F.isDeclaration() ? "DECLARES" : "DEFINES";
-      ModGlobalS << MI.ModuleCRC << "," << GlobalID << "," << ModFuncRel << "\n";
+      ModGlobalS << MI.ModuleCRC << "," << GlobalID << "," << ModFuncRel
+                 << "\n";
 
       ++GlobalID;
     }
 
     for (auto &A : M->aliases()) {
-      AliasS << GlobalID << "," << A.getName() << "," << A.getAliasee()->getName() << "\n";
+      AliasS << GlobalID << "," << A.getName() << ","
+             << A.getAliasee()->getName() << "\n";
 
-      ModGlobalS << MI.ModuleCRC << "," << GlobalID << "," << "DEFINES\n";
+      ModGlobalS << MI.ModuleCRC << "," << GlobalID << ","
+                 << "DEFINES\n";
 
       ++GlobalID;
     }
