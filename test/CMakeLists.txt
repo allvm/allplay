@@ -16,6 +16,9 @@ list(APPEND ALLVM_TEST_DEPENDS
   wllvm-dump
   wllvm-extract
 )
+if ( LLD_AVAILABLE_AS_LIB )
+  list(APPEND ALLVM_TEST_DEPENDS alld)
+endif()
 set(ALLVM_TEST_PARAMS
   allvm_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg
 )
