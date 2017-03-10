@@ -42,14 +42,6 @@ cl::opt<bool>
                 cl::desc("Dump modules before writing them, use with caution."),
                 cl::sub(Decompose));
 
-// defined, undefined, whatever
-auto getSymCount(llvm::Module *M) {
-  ModuleSymbolTable MST;
-  MST.addModule(M);
-
-  return MST.symbols().size();
-}
-
 bool hasSymbolDefinition(llvm::Module *M) {
   ModuleSymbolTable MST;
   MST.addModule(M);
@@ -64,10 +56,12 @@ bool hasSymbolDefinition(llvm::Module *M) {
   return false;
 }
 
+const unsigned SplitFactor = 10; // MAGIC
+
 } // end anonymous namespace
 
-Error allvm::decompose(StringRef BCFile, StringRef OutDir,
-                       unsigned NumPartitions, bool Verbose) {
+Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool Verbose) {
+
   auto &OS = Verbose ? errs() : nulls();
   OS << "Loading file '" << BCFile << "'...\n";
   LLVMContext C;
@@ -84,57 +78,96 @@ Error allvm::decompose(StringRef BCFile, StringRef OutDir,
     return errorCodeToError(EC);
 
   OS << "Splitting...\n";
-  // XXX: This is pretty kludgy-- we want something more direct than
-  // using SplitModule and whatnot.  But it's a start.
-  auto NumOutputs =
-      (NumPartitions != 0) ? NumPartitions : unsigned(getSymCount(M.get()));
-
-  std::unique_ptr<boost::progress_display> progress;
-  if (Verbose)
-    progress.reset(new boost::progress_display(NumOutputs));
 
   legacy::PassManager PM;
   PM.add(createGlobalOptimizerPass());
 
-  unsigned I = 0;
-  llvm::Error DeferredErrors = Error::success();
-  SplitModule(std::move(M), NumOutputs,
-              [&](std::unique_ptr<Module> MPart) {
-                if (Verbose)
-                  ++*progress;
-                PM.run(*MPart);
-                if (!hasSymbolDefinition(MPart.get()))
-                  return;
-                if (DumpModules)
-                  OS << "\nModule " << utostr(I) << ":\n";
-                std::error_code EC;
-                std::string OutName = (OutDir + "/" + utostr(I++)).str();
-                tool_output_file Out(OutName, EC, sys::fs::F_None);
-                if (EC) {
-                  DeferredErrors = joinErrors(std::move(DeferredErrors),
-                                              errorCodeToError(EC));
-                  return;
-                }
-                if (DumpModules)
-                  MPart->dump(); // not to OS
+  std::vector<std::unique_ptr<Module>> ModQ;
+  ModQ.push_back(std::move(M));
 
-                WriteBitcodeToFile(MPart.get(), Out.os());
+  auto SplitWhileUseful = [&](bool PreserveLocals, auto Callback) {
+    unsigned CurSplitFactor = SplitFactor;
+    while (!ModQ.empty()) {
+      auto CurM = std::move(ModQ.back());
+      ModQ.pop_back();
 
-                Out.keep();
-              },
-              false /* PreserveLocals */);
-  if (DeferredErrors)
-    return DeferredErrors;
+      size_t Empty = 0;
+      size_t Before = ModQ.size();
+      SplitModule(std::move(CurM), CurSplitFactor,
+                  [&](std::unique_ptr<Module> MPart) {
+                    PM.run(*MPart);
+                    if (!hasSymbolDefinition(MPart.get())) {
+                      ++Empty;
+                      return;
+                    }
+                    // OS << "Adding module..\n";
+                    ModQ.emplace_back(std::move(MPart));
+                  },
+                  PreserveLocals);
 
-  OS << "Partitions created: " << I << "\n";
-  OS << "Done!\n";
+      assert(Empty != CurSplitFactor && "all partitions empty??");
+      auto UsefulPartitions = CurSplitFactor - Empty;
 
-  return Error::success();
+      assert(UsefulPartitions = ModQ.size() - Before);
+      if (UsefulPartitions == 1) {
+        // We tried to split but failed (single partition)
+        // so don't requeue, pass to callback
+        auto OutM = std::move(ModQ.back());
+        ModQ.pop_back();
+
+        Callback(std::move(OutM));
+      }
+
+      // TODO: Increase split factor to tease out partitions,
+      // but only near the end--early on splitting small amounts
+      // is critical
+      // ++CurSplitFactor;
+    }
+
+    return Error::success();
+  };
+
+  std::vector<std::unique_ptr<Module>> SecondQueue;
+  auto addToSecondQueue = [&](auto MPart) {
+    SecondQueue.emplace_back(std::move(MPart));
+  };
+
+  OS << "First pass...\n";
+  if (auto E = SplitWhileUseful(true, addToSecondQueue))
+    return std::move(E);
+
+  assert(ModQ.empty());
+  ModQ.swap(SecondQueue);
+
+  OS << "Partitions: " << ModQ.size() << "\n";
+  OS << "Second pass...\n";
+  size_t CurModIdx = 0;
+  auto writeToDisk = [&](auto OutM) {
+    std::string OutName = (OutDir + "/" + utostr(CurModIdx++)).str();
+
+    std::error_code EC;
+    tool_output_file Out(OutName, EC, sys::fs::F_None);
+    if (EC) {
+      assert(false && "Eep bad error path FIXME");
+      // return errorCodeToError(EC);
+    }
+
+    if (DumpModules)
+      OutM->dump(); // not to OS
+
+    WriteBitcodeToFile(OutM.get(), Out.os());
+
+    Out.keep();
+  };
+
+  auto E = SplitWhileUseful(false, writeToDisk);
+  OS << "Partitions: " << CurModIdx << "\n";
+  return std::move(E);
 }
 
 namespace {
 CommandRegistration
     Unused(&Decompose, [](ResourcePaths &RP LLVM_ATTRIBUTE_UNUSED) -> Error {
-      return decompose(InputFile, OutputDirectory, 0 /* auto */, true);
+      return decompose(InputFile, OutputDirectory, true);
     });
 } // end anonymous namespace

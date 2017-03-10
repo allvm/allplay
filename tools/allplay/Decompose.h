@@ -6,7 +6,6 @@
 namespace allvm {
 
 llvm::Error decompose(llvm::StringRef BCFile, llvm::StringRef OutDir,
-                      unsigned NumPartitions = 0, // 0 means 'auto'
                       bool Verbose = false);
 
 } // end namespace allvm
