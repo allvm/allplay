@@ -25,6 +25,7 @@
 
 #include <algorithm>
 #include <mutex>
+#include <pthread.h>
 #include <vector>
 
 using namespace allvm;
@@ -48,11 +49,28 @@ Error decomposeAllexes(BCDB &DB) {
   unsigned NThreads = Threads;
   if (NThreads == 0)
     NThreads = std::thread::hardware_concurrency();
-  ThreadPool TP(NThreads);
 
   // exit on error instead of propagating errors
   // out of the thread pool safely
   ExitOnError ExitOnErr("allplay decompose-allexes: ");
+
+  // Bump default pthread stack size, musl has conservative default
+  // that apparently LLVM isn't happy with when we're splitting things.
+  ::pthread_attr_t attr;
+  if (::pthread_getattr_default_np(&attr) != 0) {
+    ExitOnErr(make_error<StringError>("Error configuring threads",
+                                      errc::invalid_argument));
+  }
+  if (::pthread_attr_setstacksize(&attr, 8192 * 1024) != 0) {
+    ExitOnErr(make_error<StringError>("Error configuring threads",
+                                      errc::invalid_argument));
+  }
+  if (::pthread_setattr_default_np(&attr) != 0) {
+    ExitOnErr(make_error<StringError>("Error configuring threads",
+                                      errc::invalid_argument));
+  }
+
+  ThreadPool TP(NThreads);
 
   errs() << "Decomposing " << DB.getMods().size() << " modules,";
   errs() << " using " << NThreads << " threads...\n";
@@ -62,7 +80,6 @@ Error decomposeAllexes(BCDB &DB) {
   size_t I = 0;
   for (auto &MI : DB.getMods()) {
     std::string dir = (OutBase + "/" + utostr(I++)).str();
-    errs() << MI.Filename << " -> " << dir << "\n";
     TP.async(
         [&](auto Filename, auto OutDir) {
           ExitOnErr(decompose(Filename, OutDir, false));
