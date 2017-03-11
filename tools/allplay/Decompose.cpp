@@ -44,6 +44,10 @@ cl::opt<bool>
     DumpModules("dump", cl::Optional, cl::init(false),
                 cl::desc("Dump modules before writing them, use with caution."),
                 cl::sub(Decompose));
+cl::opt<bool>
+    VerifyModules("verify", cl::Optional, cl::init(false),
+        cl::desc("Run module verifier on modules before writing to disk."),
+        cl::sub(Decompose));
 
 bool hasSymbolDefinition(llvm::Module *M) {
   ModuleSymbolTable MST;
@@ -103,7 +107,8 @@ Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool Verbose) {
   // -global-opt breaks things, not sure why yet.
   // PM.add(createGlobalOptimizerPass());
   PM.add(createGlobalDCEPass());
-  PM.add(createVerifierPass());
+  if (VerifyModules)
+    PM.add(createVerifierPass());
 
   std::vector<std::unique_ptr<Module>> ModQ;
 
