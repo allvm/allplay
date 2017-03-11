@@ -48,6 +48,10 @@ cl::opt<bool>
     VerifyModules("verify", cl::Optional, cl::init(false),
         cl::desc("Run module verifier on modules before writing to disk."),
         cl::sub(Decompose));
+cl::opt<bool>
+    LLVMSplitModule("llvm-splitmodule", cl::Optional, cl::init(false),
+        cl::desc("Use LLVM's SplitModule instead of local version"),
+        cl::sub(Decompose));
 
 bool hasSymbolDefinition(llvm::Module *M) {
   ModuleSymbolTable MST;
@@ -129,7 +133,8 @@ Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool Verbose) {
       size_t Empty = 0;
       size_t Count = 0;
       size_t Before = ModQ.size();
-      allvm::SplitModule(std::move(CurM), CurSplitFactor,
+      auto SplitFn = LLVMSplitModule ? llvm::SplitModule : allvm::SplitModule;
+      SplitFn(std::move(CurM), CurSplitFactor,
                   [&](std::unique_ptr<Module> MPart) {
                     PM.run(*MPart);
                     if (!hasSymbolDefinition(MPart.get())) {
