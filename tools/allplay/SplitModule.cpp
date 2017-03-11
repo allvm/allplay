@@ -218,14 +218,8 @@ static bool isInPartition(const GlobalValue *GV, unsigned I, unsigned N) {
   else
     Name = GV->getName();
 
-  // Partition by MD5 hash. We only need a few bits for evenness as the number
-  // of partitions will generally be in the 1-2 figure range; the low 16 bits
-  // are enough.
-  MD5 H;
-  MD5::MD5Result R;
-  H.update(Name);
-  H.final(R);
-  return (R[0] | (unsigned(R[1]) << 8)) % N == I;
+  // Partition by MD5 hash. Only bother with lower 64 bits.
+  return MD5Hash(Name) % N == I;
 }
 
 void allvm::SplitModule(
