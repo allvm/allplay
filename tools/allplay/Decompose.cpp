@@ -44,14 +44,14 @@ cl::opt<bool>
     DumpModules("dump", cl::Optional, cl::init(false),
                 cl::desc("Dump modules before writing them, use with caution."),
                 cl::sub(Decompose));
-cl::opt<bool>
-    VerifyModules("verify", cl::Optional, cl::init(false),
-        cl::desc("Run module verifier on modules before writing to disk."),
-        cl::sub(Decompose));
+cl::opt<bool> VerifyModules(
+    "verify", cl::Optional, cl::init(false),
+    cl::desc("Run module verifier on modules before writing to disk."),
+    cl::sub(Decompose));
 cl::opt<bool>
     LLVMSplitModule("llvm-splitmodule", cl::Optional, cl::init(false),
-        cl::desc("Use LLVM's SplitModule instead of local version"),
-        cl::sub(Decompose));
+                    cl::desc("Use LLVM's SplitModule instead of local version"),
+                    cl::sub(Decompose));
 
 bool hasSymbolDefinition(llvm::Module *M) {
   ModuleSymbolTable MST;
@@ -67,20 +67,19 @@ bool hasSymbolDefinition(llvm::Module *M) {
   return false;
 }
 
-
 Error writeBCToDisk(std::unique_ptr<Module> Mod, StringRef Filename) {
-    std::error_code EC;
-    tool_output_file Out(Filename, EC, sys::fs::F_None);
-    if (EC)
-      return errorCodeToError(EC);
+  std::error_code EC;
+  tool_output_file Out(Filename, EC, sys::fs::F_None);
+  if (EC)
+    return errorCodeToError(EC);
 
-    if (DumpModules)
-      Mod->dump(); // not to OS
+  if (DumpModules)
+    Mod->dump(); // not to OS
 
-    WriteBitcodeToFile(Mod.get(), Out.os());
+  WriteBitcodeToFile(Mod.get(), Out.os());
 
-    Out.keep();
-    return Error::success();
+  Out.keep();
+  return Error::success();
 }
 
 const unsigned SplitFactor = 11; // MAGIC
@@ -135,16 +134,17 @@ Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool Verbose) {
       size_t Before = ModQ.size();
       auto SplitFn = LLVMSplitModule ? llvm::SplitModule : allvm::SplitModule;
       SplitFn(std::move(CurM), CurSplitFactor,
-                  [&](std::unique_ptr<Module> MPart) {
-                    PM.run(*MPart);
-                    if (!hasSymbolDefinition(MPart.get())) {
-                      ++Empty;
-                      return;
-                    }
-                    MPart->setModuleIdentifier(MPart->getModuleIdentifier() + "_" + utostr(Count++));
-                    ModQ.emplace_back(std::move(MPart));
-                  },
-                  PreserveLocals);
+              [&](std::unique_ptr<Module> MPart) {
+                PM.run(*MPart);
+                if (!hasSymbolDefinition(MPart.get())) {
+                  ++Empty;
+                  return;
+                }
+                MPart->setModuleIdentifier(MPart->getModuleIdentifier() + "_" +
+                                           utostr(Count++));
+                ModQ.emplace_back(std::move(MPart));
+              },
+              PreserveLocals);
       assert(Count && "all partitions empty?!");
 
       assert(Empty != CurSplitFactor && "all partitions empty??");

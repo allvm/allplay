@@ -41,7 +41,7 @@ namespace {
 typedef EquivalenceClasses<const GlobalValue *> ClusterMapType;
 typedef DenseMap<const Comdat *, const GlobalValue *> ComdatMembersType;
 typedef DenseMap<const GlobalValue *, unsigned> ClusterIDMapType;
-}
+} // end anonymous namespace
 
 static void addNonConstUser(ClusterMapType &GVtoClusterMap,
                             const GlobalValue *GV, const User *U) {
@@ -157,11 +157,13 @@ static void findPartitions(Module *M, ClusterIDMapType &ClusterIDMap,
   // To guarantee determinism, we have to sort SCC according to size.
   // When size is the same, use leader's name.
   for (ClusterMapType::iterator I = GVtoClusterMap.begin(),
-                                E = GVtoClusterMap.end(); I != E; ++I)
+                                E = GVtoClusterMap.end();
+       I != E; ++I)
     if (I->isLeader())
       Sets.push_back(
           std::make_pair(std::distance(GVtoClusterMap.member_begin(I),
-                                       GVtoClusterMap.member_end()), I));
+                                       GVtoClusterMap.member_end()),
+                         I));
 
   std::sort(Sets.begin(), Sets.end(), [](const SortType &a, const SortType &b) {
     if (a.first == b.first)

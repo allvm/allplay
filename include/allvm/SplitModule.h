@@ -37,10 +37,10 @@ namespace allvm {
 ///   module.
 /// - Internal symbols defined in module-level inline asm should be visible to
 ///   each partition.
-void SplitModule(
-    std::unique_ptr<llvm::Module> M, unsigned N,
-    llvm::function_ref<void(std::unique_ptr<llvm::Module> MPart)> ModuleCallback,
-    bool PreserveLocals = false);
+void SplitModule(std::unique_ptr<llvm::Module> M, unsigned N,
+                 llvm::function_ref<void(std::unique_ptr<llvm::Module> MPart)>
+                     ModuleCallback,
+                 bool PreserveLocals = false);
 
 } // end namespace allvm
 
