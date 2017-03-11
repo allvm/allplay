@@ -3,6 +3,8 @@
 #include "boost_progress.h"
 #include "subcommand-registry.h"
 
+#include "allvm/SplitModule.h"
+
 #include <llvm/ADT/StringExtras.h>
 #include <llvm/Bitcode/BitcodeReader.h>
 #include <llvm/Bitcode/BitcodeWriter.h>
@@ -56,7 +58,7 @@ bool hasSymbolDefinition(llvm::Module *M) {
   return false;
 }
 
-const unsigned SplitFactor = 37; // MAGIC
+const unsigned SplitFactor = 11; // MAGIC
 
 } // end anonymous namespace
 
@@ -92,15 +94,16 @@ Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool Verbose) {
       ModQ.pop_back();
 
       size_t Empty = 0;
+      size_t Count = 0;
       size_t Before = ModQ.size();
-      SplitModule(std::move(CurM), CurSplitFactor,
+      allvm::SplitModule(std::move(CurM), CurSplitFactor,
                   [&](std::unique_ptr<Module> MPart) {
                     PM.run(*MPart);
                     if (!hasSymbolDefinition(MPart.get())) {
                       ++Empty;
                       return;
                     }
-                    // OS << "Adding module..\n";
+                    MPart->setModuleIdentifier(MPart->getModuleIdentifier() + "_" + utostr(Count++));
                     ModQ.emplace_back(std::move(MPart));
                   },
                   PreserveLocals);
@@ -108,7 +111,8 @@ Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool Verbose) {
       assert(Empty != CurSplitFactor && "all partitions empty??");
       auto UsefulPartitions = CurSplitFactor - Empty;
 
-      assert(UsefulPartitions = ModQ.size() - Before);
+      assert(UsefulPartitions == Count);
+      assert(UsefulPartitions == ModQ.size() - Before);
       if (UsefulPartitions == 1) {
         // We tried to split but failed (single partition)
         // so don't requeue, pass to callback

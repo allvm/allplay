@@ -219,12 +219,21 @@ static bool isInPartition(const GlobalValue *GV, unsigned I, unsigned N) {
     Name = GV->getName();
 
   // Partition by MD5 hash. Only bother with lower 64 bits.
+  // Use module identifier as well, so different modules
+  // with same contents will be partitioned differently.
+  // For this code's original purpose that's likely
+  // very undesirable--codegen behavior shouldn't change
+  // based on filename!
+  auto *M = GV->getParent();
+
   MD5 H;
   MD5::MD5Result R;
+  H.update(M->getModuleIdentifier());
   H.update(Name);
   H.final(R);
 
-  auto Bits = endian::read<uint64_t, little, unaligned>(Result);
+  using namespace llvm::support;
+  auto Bits = endian::read<uint64_t, little, unaligned>(R);
   return (Bits % N) == I;
 }
 
