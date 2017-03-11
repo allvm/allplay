@@ -225,7 +225,7 @@ static bool isInPartition(const GlobalValue *GV, unsigned I, unsigned N) {
   MD5::MD5Result R;
   H.update(Name);
   H.final(R);
-  return (R[0] | (R[1] << 8)) % N == I;
+  return (R[0] | (unsigned(R[1]) << 8)) % N == I;
 }
 
 void allvm::SplitModule(
