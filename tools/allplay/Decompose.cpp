@@ -85,6 +85,13 @@ Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool Verbose) {
   PM.add(createGlobalOptimizerPass());
 
   std::vector<std::unique_ptr<Module>> ModQ;
+
+  // Stash original module identifier,
+  // set to predictable value so partitioning
+  // isn't reliant on the ModuleIdentifier
+  // (which is often a filename)
+  std::string OrigModID = M->getModuleIdentifier();
+  M->setModuleIdentifier("");
   ModQ.push_back(std::move(M));
 
   auto SplitWhileUseful = [&](bool PreserveLocals, auto Callback) {
@@ -158,6 +165,8 @@ Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool Verbose) {
 
     if (DumpModules)
       OutM->dump(); // not to OS
+
+    OutM->setModuleIdentifier(OrigModID + OutM->getModuleIdentifier());
 
     WriteBitcodeToFile(OutM.get(), Out.os());
 
