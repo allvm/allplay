@@ -124,7 +124,6 @@ Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool Verbose) {
   ModQ.push_back(std::move(M));
 
   auto SplitWhileUseful = [&](bool PreserveLocals, auto Callback) {
-    unsigned CurSplitFactor = SplitFactor;
     while (!ModQ.empty()) {
       auto CurM = std::move(ModQ.back());
       ModQ.pop_back();
@@ -133,7 +132,7 @@ Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool Verbose) {
       size_t Count = 0;
       size_t Before = ModQ.size();
       auto SplitFn = LLVMSplitModule ? llvm::SplitModule : allvm::SplitModule;
-      SplitFn(std::move(CurM), CurSplitFactor,
+      SplitFn(std::move(CurM), SplitFactor,
               [&](std::unique_ptr<Module> MPart) {
                 PM.run(*MPart);
                 if (!hasSymbolDefinition(MPart.get())) {
@@ -147,8 +146,8 @@ Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool Verbose) {
               PreserveLocals);
       assert(Count && "all partitions empty?!");
 
-      assert(Empty != CurSplitFactor && "all partitions empty??");
-      auto UsefulPartitions = CurSplitFactor - Empty;
+      assert(Empty != SplitFactor && "all partitions empty??");
+      auto UsefulPartitions = SplitFactor - Empty;
 
       assert(UsefulPartitions == Count);
       assert(UsefulPartitions == ModQ.size() - Before);
@@ -160,11 +159,6 @@ Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool Verbose) {
 
         Callback(std::move(OutM));
       }
-
-      // TODO: Increase split factor to tease out partitions,
-      // but only near the end--early on splitting small amounts
-      // is critical
-      // ++CurSplitFactor;
     }
 
     return Error::success();
