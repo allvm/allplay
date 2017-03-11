@@ -11,6 +11,7 @@
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/Module.h>
+#include <llvm/IR/Verifier.h>
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/Object/ModuleSymbolTable.h>
 #include <llvm/Object/ObjectFile.h>
@@ -58,7 +59,24 @@ bool hasSymbolDefinition(llvm::Module *M) {
   return false;
 }
 
+
+Error writeBCToDisk(std::unique_ptr<Module> Mod, StringRef Filename) {
+    std::error_code EC;
+    tool_output_file Out(Filename, EC, sys::fs::F_None);
+    if (EC)
+      return errorCodeToError(EC);
+
+    if (DumpModules)
+      Mod->dump(); // not to OS
+
+    WriteBitcodeToFile(Mod.get(), Out.os());
+
+    Out.keep();
+    return Error::success();
+}
+
 const unsigned SplitFactor = 11; // MAGIC
+const StringRef ModuleIDPrefix = "base";
 
 } // end anonymous namespace
 
@@ -82,7 +100,10 @@ Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool Verbose) {
   OS << "Splitting...\n";
 
   legacy::PassManager PM;
-  PM.add(createGlobalOptimizerPass());
+  // -global-opt breaks things, not sure why yet.
+  // PM.add(createGlobalOptimizerPass());
+  PM.add(createGlobalDCEPass());
+  PM.add(createVerifierPass());
 
   std::vector<std::unique_ptr<Module>> ModQ;
 
@@ -91,7 +112,7 @@ Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool Verbose) {
   // isn't reliant on the ModuleIdentifier
   // (which is often a filename)
   std::string OrigModID = M->getModuleIdentifier();
-  M->setModuleIdentifier("");
+  M->setModuleIdentifier(ModuleIDPrefix);
   ModQ.push_back(std::move(M));
 
   auto SplitWhileUseful = [&](bool PreserveLocals, auto Callback) {
@@ -114,6 +135,7 @@ Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool Verbose) {
                     ModQ.emplace_back(std::move(MPart));
                   },
                   PreserveLocals);
+      assert(Count && "all partitions empty?!");
 
       assert(Empty != CurSplitFactor && "all partitions empty??");
       auto UsefulPartitions = CurSplitFactor - Empty;
@@ -156,21 +178,16 @@ Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool Verbose) {
   auto writeToDisk = [&](auto OutM) {
     std::string OutName = (OutDir + "/" + utostr(CurModIdx++)).str();
 
-    std::error_code EC;
-    tool_output_file Out(OutName, EC, sys::fs::F_None);
-    if (EC) {
-      assert(false && "Eep bad error path FIXME");
-      // return errorCodeToError(EC);
+    StringRef Suffix = OutM->getModuleIdentifier();
+    assert(Suffix.startswith(ModuleIDPrefix));
+    Suffix.consume_front(ModuleIDPrefix);
+
+    OutM->setModuleIdentifier((OrigModID + Suffix).str());
+
+    if (auto E = writeBCToDisk(std::move(OutM), OutName)) {
+      errs() << "Error writing to disk? :(\n";
+      assert(0 && "Bad error path, FIXME!");
     }
-
-    if (DumpModules)
-      OutM->dump(); // not to OS
-
-    OutM->setModuleIdentifier(OrigModID + OutM->getModuleIdentifier());
-
-    WriteBitcodeToFile(OutM.get(), Out.os());
-
-    Out.keep();
   };
 
   auto E = SplitWhileUseful(false, writeToDisk);
