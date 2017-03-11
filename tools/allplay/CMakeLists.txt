@@ -15,6 +15,7 @@ set(LLVM_LINK_COMPONENTS
 add_llvm_tool(allplay
   allplay.cpp
 
+  # subcommands
   CombinedModule.cpp
   Cypher.cpp
   Decompose.cpp
@@ -27,6 +28,8 @@ add_llvm_tool(allplay
   Uncombine.cpp
 
   subcommand-registry.cpp
+  # Other
+  SplitModule.cpp
 )
 target_link_libraries(allplay BCDB liball ResourcePaths)
 

@@ -56,7 +56,7 @@ bool hasSymbolDefinition(llvm::Module *M) {
   return false;
 }
 
-const unsigned SplitFactor = 10; // MAGIC
+const unsigned SplitFactor = 37; // MAGIC
 
 } // end anonymous namespace
 

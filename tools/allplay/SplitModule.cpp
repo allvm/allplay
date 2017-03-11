@@ -7,7 +7,7 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file defines the function llvm::SplitModule, which splits a module
+// This file defines the function allvm::SplitModule, which splits a module
 // into multiple linkable partitions. It can be used to implement parallel code
 // generation for link-time optimization.
 //
@@ -15,23 +15,26 @@
 
 #define DEBUG_TYPE "split-module"
 
-#include "llvm/Transforms/Utils/SplitModule.h"
-#include "llvm/ADT/EquivalenceClasses.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/IR/Constants.h"
-#include "llvm/IR/Function.h"
-#include "llvm/IR/GlobalAlias.h"
-#include "llvm/IR/GlobalObject.h"
-#include "llvm/IR/GlobalValue.h"
-#include "llvm/IR/Module.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/MD5.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/Transforms/Utils/Cloning.h"
+#include "allvm/SplitModule.h"
+
+#include <llvm/ADT/EquivalenceClasses.h>
+#include <llvm/ADT/Hashing.h>
+#include <llvm/ADT/MapVector.h>
+#include <llvm/ADT/SetVector.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/Function.h>
+#include <llvm/IR/GlobalAlias.h>
+#include <llvm/IR/GlobalObject.h>
+#include <llvm/IR/GlobalValue.h>
+#include <llvm/IR/Module.h>
+#include <llvm/Support/Debug.h>
+#include <llvm/Support/MD5.h>
+#include <llvm/Support/raw_ostream.h>
+#include <llvm/Transforms/Utils/Cloning.h>
+
 #include <queue>
 
+using namespace allvm;
 using namespace llvm;
 
 namespace {
@@ -225,7 +228,7 @@ static bool isInPartition(const GlobalValue *GV, unsigned I, unsigned N) {
   return (R[0] | (R[1] << 8)) % N == I;
 }
 
-void llvm::SplitModule(
+void allvm::SplitModule(
     std::unique_ptr<Module> M, unsigned N,
     function_ref<void(std::unique_ptr<Module> MPart)> ModuleCallback,
     bool PreserveLocals) {
