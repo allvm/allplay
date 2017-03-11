@@ -200,6 +200,10 @@ Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool Verbose) {
     }
   };
 
+  // This extenalizes globals first,  meaning:
+  // Decomposed output can be linked together BUT
+  // resulting module will have all externals which is likely
+  // to cause breakage if attempting to link with other bitcode.
   auto E = SplitWhileUseful(false, writeToDisk);
   OS << "Partitions: " << CurModIdx << "\n";
   return std::move(E);
