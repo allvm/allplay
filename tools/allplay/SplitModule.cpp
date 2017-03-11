@@ -219,7 +219,13 @@ static bool isInPartition(const GlobalValue *GV, unsigned I, unsigned N) {
     Name = GV->getName();
 
   // Partition by MD5 hash. Only bother with lower 64 bits.
-  return MD5Hash(Name) % N == I;
+  MD5 H;
+  MD5::MD5Result R;
+  H.update(Name);
+  H.final(R);
+
+  auto Bits = endian::read<uint64_t, little, unaligned>(Result);
+  return (Bits % N) == I;
 }
 
 void allvm::SplitModule(
