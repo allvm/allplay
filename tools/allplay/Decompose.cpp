@@ -9,7 +9,6 @@
 #include <llvm/Bitcode/BitcodeReader.h>
 #include <llvm/Bitcode/BitcodeWriter.h>
 #include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/IRReader/IRReader.h>
@@ -52,6 +51,44 @@ cl::opt<bool>
     LLVMSplitModule("llvm-splitmodule", cl::Optional, cl::init(false),
                     cl::desc("Use LLVM's SplitModule instead of local version"),
                     cl::sub(Decompose));
+
+bool isUsefulByItself(GlobalValue *GV) {
+  return !GV->isDeclaration();
+}
+
+bool isNonEmpty(Module *M) {
+  for (auto &F: *M)
+    if (isUsefulByItself(&F))
+      return true;
+  for (auto &GV: M->globals())
+    if (isUsefulByItself(&GV))
+      return true;
+  for (auto &GA: M->aliases())
+    if (isUsefulByItself(&GA))
+      return true;
+  for (auto &GIF: M->ifuncs())
+    if (isUsefulByItself(&GIF))
+      return true;
+
+  return false;
+}
+
+auto removeDeadDecls = [](auto I, auto E) {
+  while(I !=E) {
+    auto *GV = &*I++;
+
+    GV->removeDeadConstantUsers();
+
+    if (GV->isDeclaration() && GV->use_empty()) {
+      GV->eraseFromParent();
+    }
+  }
+};
+
+void removeDeadGlobalDecls(Module &M) {
+  removeDeadDecls(M.begin(), M.end());
+  removeDeadDecls(M.global_begin(), M.global_end());
+}
 
 bool hasSymbolDefinition(llvm::Module *M) {
   ModuleSymbolTable MST;
@@ -106,13 +143,6 @@ Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool Verbose) {
 
   OS << "Splitting...\n";
 
-  legacy::PassManager PM;
-  // -global-opt breaks things, not sure why yet.
-  // PM.add(createGlobalOptimizerPass());
-  PM.add(createGlobalDCEPass());
-  if (VerifyModules)
-    PM.add(createVerifierPass());
-
   std::vector<std::unique_ptr<Module>> ModQ;
 
   // Stash original module identifier,
@@ -134,8 +164,10 @@ Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool Verbose) {
       auto SplitFn = LLVMSplitModule ? llvm::SplitModule : allvm::SplitModule;
       SplitFn(std::move(CurM), SplitFactor,
               [&](std::unique_ptr<Module> MPart) {
-                PM.run(*MPart);
-                if (!hasSymbolDefinition(MPart.get())) {
+                removeDeadGlobalDecls(*MPart);
+                if (VerifyModules)
+                  verifyModule(*MPart);
+                if (!isNonEmpty(MPart.get()) && !hasSymbolDefinition(MPart.get())) {
                   ++Empty;
                   return;
                 }
