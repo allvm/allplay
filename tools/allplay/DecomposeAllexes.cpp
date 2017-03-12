@@ -82,7 +82,7 @@ Error decomposeAllexes(BCDB &DB) {
     std::string dir = (OutBase + "/" + utostr(I++)).str();
     TP.async(
         [&](auto Filename, auto OutDir) {
-          ExitOnErr(decompose(Filename, OutDir, false));
+          ExitOnErr(decompose_into_dir(Filename, OutDir, false));
           std::lock_guard<std::mutex> Lock(ProgressMtx);
           ++progress;
         },

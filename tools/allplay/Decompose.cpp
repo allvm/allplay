@@ -122,7 +122,11 @@ const StringRef ModuleIDPrefix = "base";
 
 } // end anonymous namespace
 
-Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool Verbose) {
+Error allvm::decompose(
+    StringRef BCFile,
+    function_ref<Error(std::unique_ptr<Module> MPart, StringRef Path)>
+        ModuleCallback,
+    bool Verbose) {
 
   auto &OS = Verbose ? errs() : nulls();
   OS << "Loading file '" << BCFile << "'...\n";
@@ -135,9 +139,6 @@ Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool Verbose) {
 
   if (auto Err = M->materializeAll())
     return Err;
-
-  if (auto EC = sys::fs::create_directories(OutDir))
-    return errorCodeToError(EC);
 
   OS << "Splitting...\n";
 
@@ -176,13 +177,11 @@ Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool Verbose) {
               },
               PreserveLocals);
       assert(Count && "all partitions empty?!");
+      assert((ModQ.size() - Before == Count) && "module queue count mismatch");
+      assert((Count + Empty == SplitFactor) &&
+             "callback not called splitfactor times");
 
-      assert(Empty != SplitFactor && "all partitions empty??");
-      auto UsefulPartitions = SplitFactor - Empty;
-
-      assert(UsefulPartitions == Count);
-      assert(UsefulPartitions == ModQ.size() - Before);
-      if (UsefulPartitions == 1) {
+      if (Count == 1) {
         // We tried to split but failed (single partition)
         // so don't requeue, pass to callback
         auto OutM = std::move(ModQ.back());
@@ -211,15 +210,14 @@ Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool Verbose) {
   OS << "Second pass...\n";
   size_t CurModIdx = 0;
   auto writeToDisk = [&](auto OutM) {
-    std::string OutName = (OutDir + "/" + utostr(CurModIdx++)).str();
-
     StringRef Suffix = OutM->getModuleIdentifier();
     assert(Suffix.startswith(ModuleIDPrefix));
     Suffix.consume_front(ModuleIDPrefix);
 
     OutM->setModuleIdentifier((OrigModID + Suffix).str());
 
-    if (auto E = writeBCToDisk(std::move(OutM), OutName)) {
+    std::string OutName = utostr(CurModIdx++);
+    if (auto E = ModuleCallback(std::move(OutM), OutName)) {
       errs() << "Error writing to disk? :(\n";
       assert(0 && "Bad error path, FIXME!");
     }
@@ -234,9 +232,22 @@ Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool Verbose) {
   return std::move(E);
 }
 
+Error allvm::decompose_into_dir(StringRef BCFile, StringRef OutDir,
+                                bool Verbose) {
+  if (auto EC = sys::fs::create_directories(OutDir))
+    return errorCodeToError(EC);
+
+  return decompose(BCFile,
+                   [&OutDir](auto M, StringRef Filename) {
+                     std::string Path = (OutDir + "/" + Filename).str();
+                     return writeBCToDisk(std::move(M), Path);
+                   },
+                   Verbose);
+}
+
 namespace {
 CommandRegistration
     Unused(&Decompose, [](ResourcePaths &RP LLVM_ATTRIBUTE_UNUSED) -> Error {
-      return decompose(InputFile, OutputDirectory, true);
+      return decompose_into_dir(InputFile, OutputDirectory, true);
     });
 } // end anonymous namespace
