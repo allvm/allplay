@@ -70,6 +70,9 @@ Error decomposeAllexes(BCDB &DB) {
                                       errc::invalid_argument));
   }
 
+  if (auto EC = sys::fs::create_directories(OutBase))
+    return errorCodeToError(EC);
+
   ThreadPool TP(NThreads);
 
   errs() << "Decomposing " << DB.getMods().size() << " modules,";
