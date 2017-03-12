@@ -37,9 +37,14 @@ cl::SubCommand Decompose("decompose",
 cl::opt<std::string> InputFile(cl::Positional, cl::Required,
                                cl::desc("input bitcode filename"),
                                cl::sub(Decompose));
-cl::opt<std::string> OutputDirectory("o", cl::Required,
-                                     cl::desc("Path to write fragments"),
-                                     cl::sub(Decompose));
+cl::opt<std::string>
+    OutputPath("o", cl::Required,
+               cl::desc("Path to write fragments (or filename of tarfile)"),
+               cl::sub(Decompose));
+cl::opt<bool> WriteTar(
+    "write-tar", cl::Optional, cl::init(false),
+    cl::desc("Write partitions into tar, instead of loose files in directory"),
+    cl::sub(Decompose));
 cl::opt<bool>
     DumpModules("dump", cl::Optional, cl::init(false),
                 cl::desc("Dump modules before writing them, use with caution."),
@@ -256,8 +261,6 @@ Error allvm::decompose_into_tar(StringRef BCFile, StringRef TarFile,
   return decompose(BCFile,
                    [&TW](auto M, StringRef Filename) {
                      SmallVector<char, 0> Buffer;
-                     BitcodeWriter Writer(Buffer);
-
                      raw_svector_ostream OS(Buffer);
 
                      WriteBitcodeToFile(M.get(), OS);
@@ -273,6 +276,9 @@ Error allvm::decompose_into_tar(StringRef BCFile, StringRef TarFile,
 namespace {
 CommandRegistration
     Unused(&Decompose, [](ResourcePaths &RP LLVM_ATTRIBUTE_UNUSED) -> Error {
-      return decompose_into_dir(InputFile, OutputDirectory, true);
+      if (WriteTar)
+        return decompose_into_tar(InputFile, OutputPath, true);
+      else
+        return decompose_into_dir(InputFile, OutputPath, true);
     });
 } // end anonymous namespace
