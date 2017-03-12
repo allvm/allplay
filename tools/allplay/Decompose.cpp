@@ -18,6 +18,7 @@
 #include <llvm/Support/Error.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/SourceMgr.h>
+#include <llvm/Support/TarWriter.h>
 #include <llvm/Support/ToolOutputFile.h>
 #include <llvm/Transforms/IPO.h>
 #include <llvm/Transforms/Utils/SplitModule.h>
@@ -241,6 +242,30 @@ Error allvm::decompose_into_dir(StringRef BCFile, StringRef OutDir,
                    [&OutDir](auto M, StringRef Filename) {
                      std::string Path = (OutDir + "/" + Filename).str();
                      return writeBCToDisk(std::move(M), Path);
+                   },
+                   Verbose);
+}
+
+Error allvm::decompose_into_tar(StringRef BCFile, StringRef TarFile,
+                                bool Verbose) {
+  StringRef BasePath = ""; // TODO: something useful for this?
+  auto TW = TarWriter::create(TarFile, BasePath);
+  if (!TW)
+    return TW.takeError();
+
+  return decompose(BCFile,
+                   [&TW](auto M, StringRef Filename) {
+                     SmallVector<char, 0> Buffer;
+                     BitcodeWriter Writer(Buffer);
+
+                     raw_svector_ostream OS(Buffer);
+
+                     WriteBitcodeToFile(M.get(), OS);
+
+                     (*TW)->append(Filename,
+                                   StringRef(Buffer.data(), Buffer.size()));
+
+                     return Error::success();
                    },
                    Verbose);
 }

@@ -17,6 +17,8 @@ decompose(llvm::StringRef BCFile,
 
 llvm::Error decompose_into_dir(llvm::StringRef BCFile, llvm::StringRef OutDir,
                                bool Verbose = false);
+llvm::Error decompose_into_tar(llvm::StringRef BCFile, llvm::StringRef TarFile,
+                               bool Verbose = false);
 
 } // end namespace allvm
 
