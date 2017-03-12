@@ -79,14 +79,14 @@ Error decomposeAllexes(BCDB &DB) {
 
   size_t I = 0;
   for (auto &MI : DB.getMods()) {
-    std::string dir = (OutBase + "/" + utostr(I++)).str();
+    std::string tarf = (OutBase + "/" + utostr(I++) + ".tar").str();
     TP.async(
-        [&](auto Filename, auto OutDir) {
-          ExitOnErr(decompose_into_dir(Filename, OutDir, false));
+        [&](auto Filename, auto OutTar) {
+          ExitOnErr(decompose_into_tar(Filename, OutTar, false));
           std::lock_guard<std::mutex> Lock(ProgressMtx);
           ++progress;
         },
-        MI.Filename, dir);
+        MI.Filename, tarf);
   }
 
   TP.wait();
