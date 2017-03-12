@@ -253,7 +253,7 @@ Error allvm::decompose_into_dir(StringRef BCFile, StringRef OutDir,
 
 Error allvm::decompose_into_tar(StringRef BCFile, StringRef TarFile,
                                 bool Verbose) {
-  StringRef BasePath = ""; // TODO: something useful for this?
+  StringRef BasePath = "bits"; // TODO: something useful for this?
   auto TW = TarWriter::create(TarFile, BasePath);
   if (!TW)
     return TW.takeError();
