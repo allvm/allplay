@@ -52,21 +52,19 @@ cl::opt<bool>
                     cl::desc("Use LLVM's SplitModule instead of local version"),
                     cl::sub(Decompose));
 
-bool isUsefulByItself(GlobalValue *GV) {
-  return !GV->isDeclaration();
-}
+bool isUsefulByItself(GlobalValue *GV) { return !GV->isDeclaration(); }
 
 bool isNonEmpty(Module *M) {
-  for (auto &F: *M)
+  for (auto &F : *M)
     if (isUsefulByItself(&F))
       return true;
-  for (auto &GV: M->globals())
+  for (auto &GV : M->globals())
     if (isUsefulByItself(&GV))
       return true;
-  for (auto &GA: M->aliases())
+  for (auto &GA : M->aliases())
     if (isUsefulByItself(&GA))
       return true;
-  for (auto &GIF: M->ifuncs())
+  for (auto &GIF : M->ifuncs())
     if (isUsefulByItself(&GIF))
       return true;
 
@@ -74,7 +72,7 @@ bool isNonEmpty(Module *M) {
 }
 
 auto removeDeadDecls = [](auto I, auto E) {
-  while(I !=E) {
+  while (I != E) {
     auto *GV = &*I++;
 
     GV->removeDeadConstantUsers();
@@ -167,7 +165,8 @@ Error allvm::decompose(StringRef BCFile, StringRef OutDir, bool Verbose) {
                 removeDeadGlobalDecls(*MPart);
                 if (VerifyModules)
                   verifyModule(*MPart);
-                if (!isNonEmpty(MPart.get()) && !hasSymbolDefinition(MPart.get())) {
+                if (!isNonEmpty(MPart.get()) &&
+                    !hasSymbolDefinition(MPart.get())) {
                   ++Empty;
                   return;
                 }
