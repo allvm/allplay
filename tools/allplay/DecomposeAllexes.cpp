@@ -48,7 +48,7 @@ Error decomposeAllexes(BCDB &DB) {
   StringRef OutBase = "bits";
   unsigned NThreads = Threads;
   if (NThreads == 0)
-    NThreads = std::thread::hardware_concurrency();
+    NThreads = llvm::heavyweight_hardware_concurrency();
 
   // exit on error instead of propagating errors
   // out of the thread pool safely
