@@ -27,6 +27,17 @@ inline void setALLVMSource(llvm::Module *M, llvm::StringRef Source) {
   setModuleFlag(M, MF_ALLVM_SOURCE, Source);
 }
 
+inline llvm::StringRef getWLLVMSource(llvm::Module *M) {
+  using namespace llvm;
+  auto *Meta = M->getModuleFlag(MF_WLLVM_SOURCE);
+  if (!Meta)
+    return {};
+  auto *MD = cast<MDNode>(Meta);
+
+  assert(MD->getNumOperands() == 1);
+  return cast<MDString>(*MD->op_begin())->getString();
+}
+
 inline std::vector<llvm::StringRef> getALLVMSources(llvm::Module *M) {
   using namespace llvm;
   auto *Meta = M->getModuleFlag(MF_ALLVM_SOURCE);

@@ -24,6 +24,7 @@ add_llvm_tool(allplay
   FunctionHash.cpp
   Graph.cpp
   Neo.cpp
+  PrintSource.cpp
   StringGraph.cpp
   Uncombine.cpp
 
