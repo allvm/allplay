@@ -109,8 +109,9 @@ Error neo(BCDB &DB, StringRef Prefix) {
     if (auto Err = M->materializeAll())
       return Err;
 
-    ModS << ModID << "," << basename(MI.Filename) << ","
-         << removePrefix(MI.Filename) << ","
+    std::string Name =
+        (basename(getWLLVMSource(M.get())) + "-" + basename(MI.Filename)).str();
+    ModS << ModID << "," << Name << "," << removePrefix(MI.Filename) << ","
          << removePrefix(getWLLVMSource(M.get())) << "\n";
 
     for (auto &F : *M) {
