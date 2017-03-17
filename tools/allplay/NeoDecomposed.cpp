@@ -24,7 +24,9 @@ using namespace allvm;
 
 namespace {
 
-cl::SubCommand NeoCSVDecomp("neocsv-decompose", "Create CSV files from decomposed modules for importing into neo4j");
+cl::SubCommand NeoCSVDecomp(
+    "neocsv-decompose",
+    "Create CSV files from decomposed modules for importing into neo4j");
 cl::opt<std::string> InputDirectory(cl::Positional, cl::Required,
                                     cl::desc("<input directory to scan>"),
                                     cl::sub(NeoCSVDecomp));
