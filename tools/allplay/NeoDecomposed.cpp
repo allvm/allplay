@@ -90,12 +90,15 @@ Error neo(BCDB &DB, StringRef Prefix) {
   boost::progress_display mod_progress(DB.getMods().size());
 
   // Create module nodes
-  ModS << "CRC:ID(Module),Name,Path,Source\n";
+  ModS << ":ID(Module),Name,Path,Source\n";
   FuncS << ":ID(Global),Name,Insts:int,Hash:long,:LABEL\n";
   AliasS << ":ID(Global),Name,Aliasee\n"; // XXX: Add info
   ModGlobalS << ":START_ID(Module),:END_ID(Global),:TYPE\n";
   size_t GlobalID = 0;
+  size_t ModIDCounter = 0;
   for (auto &MI : DB.getMods()) {
+
+    auto ModID = ModIDCounter++;
 
     SMDiagnostic SM;
     LLVMContext C;
@@ -106,8 +109,9 @@ Error neo(BCDB &DB, StringRef Prefix) {
     if (auto Err = M->materializeAll())
       return Err;
 
-    ModS << MI.ModuleCRC << "," << basename(MI.Filename) << ","
-         << removePrefix(MI.Filename) << "," << getWLLVMSource(M.get()) << "\n";
+    ModS << ModID << "," << basename(MI.Filename) << ","
+         << removePrefix(MI.Filename) << ","
+         << removePrefix(getWLLVMSource(M.get())) << "\n";
 
     for (auto &F : *M) {
       FuncS << GlobalID << "," << F.getName() << ",";
@@ -120,8 +124,7 @@ Error neo(BCDB &DB, StringRef Prefix) {
 
       // Edge property redundant with node label, but oh well
       auto ModFuncRel = F.isDeclaration() ? "DECLARES" : "DEFINES";
-      ModGlobalS << MI.ModuleCRC << "," << GlobalID << "," << ModFuncRel
-                 << "\n";
+      ModGlobalS << ModID << "," << GlobalID << "," << ModFuncRel << "\n";
 
       ++GlobalID;
     }
@@ -130,7 +133,7 @@ Error neo(BCDB &DB, StringRef Prefix) {
       AliasS << GlobalID << "," << A.getName() << ","
              << A.getAliasee()->getName() << "\n";
 
-      ModGlobalS << MI.ModuleCRC << "," << GlobalID << ","
+      ModGlobalS << ModID << "," << GlobalID << ","
                  << "DEFINES\n";
 
       ++GlobalID;
