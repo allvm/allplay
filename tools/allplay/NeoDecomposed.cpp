@@ -24,33 +24,25 @@ using namespace allvm;
 
 namespace {
 
-cl::SubCommand NeoCSV("neocsv", "Create CSV files for importing into neo4j");
+cl::SubCommand NeoCSVDecomp("neocsv-decompose", "Create CSV files from decomposed modules for importing into neo4j");
 cl::opt<std::string> InputDirectory(cl::Positional, cl::Required,
                                     cl::desc("<input directory to scan>"),
-                                    cl::sub(NeoCSV));
+                                    cl::sub(NeoCSVDecomp));
 cl::opt<std::string> ModOut("modules", cl::init("modules.csv"),
                             cl::desc("name of file to write module node data"),
-                            cl::sub(NeoCSV));
-cl::opt<std::string>
-    AllOut("allexes", cl::init("allexes.csv"),
-           cl::desc("name of file to write allexe module node data"),
-           cl::sub(NeoCSV));
+                            cl::sub(NeoCSVDecomp));
 cl::opt<std::string>
     FuncOut("funcs", cl::init("funcs.csv"),
             cl::desc("name of file to write function node data"),
-            cl::sub(NeoCSV));
+            cl::sub(NeoCSVDecomp));
 cl::opt<std::string>
     ModGlobalsOut("modglobals", cl::init("modglobals.csv"),
                   cl::desc("name of file to write contains function rel data"),
-                  cl::sub(NeoCSV));
-cl::opt<std::string>
-    ContainsOut("contains", cl::init("contains.csv"),
-                cl::desc("name of file to write contains mod rel data"),
-                cl::sub(NeoCSV));
+                  cl::sub(NeoCSVDecomp));
 cl::opt<std::string>
     AliasOut("aliases", cl::init("aliases.csv"),
              cl::desc("name of file to write aliases node data"),
-             cl::sub(NeoCSV));
+             cl::sub(NeoCSVDecomp));
 
 template <typename T> auto countInsts(const T *V) {
   return std::accumulate(
@@ -69,14 +61,6 @@ Error neo(BCDB &DB, StringRef Prefix) {
   if (EC)
     return make_error<StringError>("Unable to open file " + FuncOut, EC);
   auto &FuncS = FuncOutFile.os();
-  tool_output_file AllOutFile(AllOut, EC, sys::fs::OpenFlags::F_Text);
-  if (EC)
-    return make_error<StringError>("Unable to open file " + AllOut, EC);
-  auto &AllS = AllOutFile.os();
-  tool_output_file ContainsOutFile(ContainsOut, EC, sys::fs::OpenFlags::F_Text);
-  if (EC)
-    return make_error<StringError>("Unable to open file " + ContainsOut, EC);
-  auto &ContainS = ContainsOutFile.os();
   tool_output_file ModGlobalsOutFile(ModGlobalsOut, EC,
                                      sys::fs::OpenFlags::F_Text);
   if (EC)
@@ -104,14 +88,12 @@ Error neo(BCDB &DB, StringRef Prefix) {
   boost::progress_display mod_progress(DB.getMods().size());
 
   // Create module nodes
-  ModS << "CRC:ID(Module),Name,Path\n";
+  ModS << "CRC:ID(Module),Name,Path,Source\n";
   FuncS << ":ID(Global),Name,Insts:int,Hash:long,:LABEL\n";
   AliasS << ":ID(Global),Name,Aliasee\n"; // XXX: Add info
   ModGlobalS << ":START_ID(Module),:END_ID(Global),:TYPE\n";
   size_t GlobalID = 0;
   for (auto &MI : DB.getMods()) {
-    ModS << MI.ModuleCRC << "," << basename(MI.Filename) << ","
-         << removePrefix(MI.Filename) << "\n";
 
     SMDiagnostic SM;
     LLVMContext C;
@@ -121,6 +103,9 @@ Error neo(BCDB &DB, StringRef Prefix) {
           "Unable to open module file " + MI.Filename, errc::invalid_argument);
     if (auto Err = M->materializeAll())
       return Err;
+
+    ModS << MI.ModuleCRC << "," << basename(MI.Filename) << ","
+         << removePrefix(MI.Filename) << "," << getWLLVMSource(M.get()) << "\n";
 
     for (auto &F : *M) {
       FuncS << GlobalID << "," << F.getName() << ",";
@@ -152,30 +137,10 @@ Error neo(BCDB &DB, StringRef Prefix) {
     ++mod_progress;
   }
 
-  // allexe nodes
-  AllS << "ID:ID(Allexe),Name,Path\n";
-  for (size_t idx = 0; idx < DB.allexe_size(); ++idx) {
-    auto &A = DB.getAllexes()[idx];
-    AllS << idx << "," << basename(A.Filename) << ","
-         << removePrefix(A.Filename) << "\n";
-  }
-
-  // emit allexe -> module relationships
-  ContainS << ":START_ID(Allexe),Index,:END_ID(Module)\n";
-  for (size_t idx = 0; idx < DB.allexe_size(); ++idx) {
-    auto &A = DB.getAllexes()[idx];
-    for (size_t i = 0; i < A.Modules.size(); ++i) {
-      auto &M = A.Modules[i];
-      ContainS << idx << "," << i << "," << M.ModuleCRC << "\n";
-    }
-  }
-
   ModOutFile.keep();
   ModGlobalsOutFile.keep();
   AliasOutFile.keep();
   FuncOutFile.keep();
-  AllOutFile.keep();
-  ContainsOutFile.keep();
 
   errs() << "Import using 'neo4j-admin' command, something like:\n";
   errs() << "\n";
@@ -184,11 +149,9 @@ Error neo(BCDB &DB, StringRef Prefix) {
   errs() << "neo4j-admin import\\\n";
   errs() << "\t--mode=csv \\\n";
   errs() << "\t--id-type=INTEGER \\\n";
-  errs() << "\t--nodes:Module=" << ModOut << " \\\n";
+  errs() << "\t--nodes:Module:Decomposed=" << ModOut << " \\\n";
   errs() << "\t--nodes:Function=" << FuncOut << " \\\n";
   errs() << "\t--nodes:Alias=" << AliasOut << " \\\n";
-  errs() << "\t--nodes:Allexe=" << AllOut << " \\\n";
-  errs() << "\t--relationships:CONTAINS=" << ContainsOut << " \\\n";
   errs() << "\t--relationships=" << ModGlobalsOut << " \n";
 
   errs() << "\n";
@@ -197,15 +160,15 @@ Error neo(BCDB &DB, StringRef Prefix) {
   return Error::success();
 }
 
-CommandRegistration Unused(&NeoCSV, [](ResourcePaths &RP) -> Error {
+CommandRegistration Unused(&NeoCSVDecomp, [](ResourcePaths &RP) -> Error {
   errs() << "Scanning " << InputDirectory << "...\n";
 
-  auto ExpDB = BCDB::loadFromAllexesIn(InputDirectory, RP);
+  auto ExpDB = BCDB::loadFromBitcodeIn(InputDirectory, RP);
   if (!ExpDB)
     return ExpDB.takeError();
   auto &DB = *ExpDB;
 
-  errs() << "Done! Allexes found: " << DB->allexe_size() << "\n";
+  errs() << "Done! Modules found: " << DB->getMods().size() << "\n";
 
   return neo(*DB, InputDirectory);
 });
