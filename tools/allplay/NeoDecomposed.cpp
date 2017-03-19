@@ -53,25 +53,36 @@ template <typename T> auto countInsts(const T *V) {
 }
 template <> auto countInsts(const BasicBlock *B) { return B->size(); }
 
+Expected<std::unique_ptr<tool_output_file>> openFile(StringRef Filename) {
+    std::error_code EC;
+    auto F = llvm::make_unique<tool_output_file>(Filename, EC, sys::fs::OpenFlags::F_Text);
+    if (EC)
+      return make_error<StringError>("Unable to open file " + Filename, EC);
+    return std::move(F);
+}
+
+std::unique_ptr<tool_output_file> openFile(StringRef Filename, Error &E) {
+  auto F = openFile(Filename);
+  if (!F) {
+    E = joinErrors(std::move(E), F.takeError());
+    return nullptr;
+  }
+  return std::move(*F);
+}
+
 Error neo(BCDB &DB, StringRef Prefix) {
-  std::error_code EC;
-  tool_output_file ModOutFile(ModOut, EC, sys::fs::OpenFlags::F_Text);
-  if (EC)
-    return make_error<StringError>("Unable to open file " + ModOut, EC);
-  auto &ModS = ModOutFile.os();
-  tool_output_file FuncOutFile(FuncOut, EC, sys::fs::OpenFlags::F_Text);
-  if (EC)
-    return make_error<StringError>("Unable to open file " + FuncOut, EC);
-  auto &FuncS = FuncOutFile.os();
-  tool_output_file ModGlobalsOutFile(ModGlobalsOut, EC,
-                                     sys::fs::OpenFlags::F_Text);
-  if (EC)
-    return make_error<StringError>("Unable to open file " + ModGlobalsOut, EC);
-  auto &ModGlobalS = ModGlobalsOutFile.os();
-  tool_output_file AliasOutFile(AliasOut, EC, sys::fs::OpenFlags::F_Text);
-  if (EC)
-    return make_error<StringError>("Unable to open file " + AliasOut, EC);
-  auto &AliasS = AliasOutFile.os();
+  Error E = Error::success();
+  auto ModOutFile = openFile(ModOut, E);
+  auto FuncOutFile = openFile(FuncOut, E);
+  auto ModGlobalsOutFile = openFile(ModGlobalsOut, E);
+  auto AliasOutFile = openFile(AliasOut, E);
+  if (E)
+    return E;
+
+  auto &ModS = ModOutFile->os();
+  auto &FuncS = FuncOutFile->os();
+  auto &ModGlobalS = ModGlobalsOutFile->os();
+  auto &AliasS = AliasOutFile->os();
 
   // TODO: canonicalize all paths into nix store
   auto removePrefix = [Prefix](StringRef S) {
@@ -143,10 +154,10 @@ Error neo(BCDB &DB, StringRef Prefix) {
     ++mod_progress;
   }
 
-  ModOutFile.keep();
-  ModGlobalsOutFile.keep();
-  AliasOutFile.keep();
-  FuncOutFile.keep();
+  ModOutFile->keep();
+  ModGlobalsOutFile->keep();
+  AliasOutFile->keep();
+  FuncOutFile->keep();
 
   errs() << "Import using 'neo4j-admin' command, something like:\n";
   errs() << "\n";
