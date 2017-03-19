@@ -60,11 +60,12 @@ template <typename T> auto countInsts(const T *V) {
 template <> auto countInsts(const BasicBlock *B) { return B->size(); }
 
 Expected<std::unique_ptr<tool_output_file>> openFile(StringRef Filename) {
-    std::error_code EC;
-    auto F = llvm::make_unique<tool_output_file>(Filename, EC, sys::fs::OpenFlags::F_Text);
-    if (EC)
-      return make_error<StringError>("Unable to open file " + Filename, EC);
-    return std::move(F);
+  std::error_code EC;
+  auto F = llvm::make_unique<tool_output_file>(Filename, EC,
+                                               sys::fs::OpenFlags::F_Text);
+  if (EC)
+    return make_error<StringError>("Unable to open file " + Filename, EC);
+  return std::move(F);
 }
 
 std::unique_ptr<tool_output_file> openFile(StringRef Filename, Error &E) {
@@ -75,7 +76,6 @@ std::unique_ptr<tool_output_file> openFile(StringRef Filename, Error &E) {
   }
   return std::move(*F);
 }
-
 
 Error neo(BCDB &DB, StringRef Prefix) {
   Error E = Error::success();
