@@ -45,6 +45,10 @@ cl::opt<std::string>
     AliasOut("aliases", cl::init("aliases.csv"),
              cl::desc("name of file to write aliases node data"),
              cl::sub(NeoCSVDecomp));
+cl::opt<std::string>
+    GlobalOut("globals", cl::init("globals.csv"),
+              cl::desc("name of file to write globals node data"),
+              cl::sub(NeoCSVDecomp));
 
 template <typename T> auto countInsts(const T *V) {
   return std::accumulate(
@@ -75,6 +79,7 @@ Error neo(BCDB &DB, StringRef Prefix) {
   Error E = Error::success();
   auto ModOutFile = openFile(ModOut, E);
   auto FuncOutFile = openFile(FuncOut, E);
+  auto GlobalOutFile = openFile(GlobalOut, E);
   auto ModGlobalsOutFile = openFile(ModGlobalsOut, E);
   auto AliasOutFile = openFile(AliasOut, E);
   if (E)
@@ -82,6 +87,7 @@ Error neo(BCDB &DB, StringRef Prefix) {
 
   auto &ModS = ModOutFile->os();
   auto &FuncS = FuncOutFile->os();
+  auto &GlobalS = GlobalOutFile->os();
   auto &ModGlobalS = ModGlobalsOutFile->os();
   auto &AliasS = AliasOutFile->os();
 
@@ -104,6 +110,7 @@ Error neo(BCDB &DB, StringRef Prefix) {
   // Create module nodes
   ModS << ":ID(Module),Name,Path,Source\n";
   FuncS << ":ID(Global),Name,Insts:int,Hash:long,:LABEL\n";
+  GlobalS << ":ID(Global),Name,:LABEL\n"; // XXX: Add more info
   AliasS << ":ID(Global),Name,Aliasee\n"; // XXX: Add info
   ModGlobalS << ":START_ID(Module),:END_ID(Global),:TYPE\n";
   size_t GlobalID = 0;
@@ -142,6 +149,15 @@ Error neo(BCDB &DB, StringRef Prefix) {
       ++GlobalID;
     }
 
+    for (auto &G : M->globals()) {
+      auto ModRel = G.isDeclaration() ? "DECLARES" : "DEFINES";
+      auto Label = G.isDeclaration() ? "Declaration" : "Definition";
+      GlobalS << GlobalID << "," << G.getName() << "," << Label << "\n";
+      ModGlobalS << ModID << "," << GlobalID << "," << ModRel << "\n";
+
+      ++GlobalID;
+    };
+
     for (auto &A : M->aliases()) {
       AliasS << GlobalID << "," << A.getName() << ","
              << A.getAliasee()->getName() << "\n";
@@ -159,6 +175,7 @@ Error neo(BCDB &DB, StringRef Prefix) {
   ModGlobalsOutFile->keep();
   AliasOutFile->keep();
   FuncOutFile->keep();
+  GlobalOutFile->keep();
 
   errs() << "Import using 'neo4j-admin' command, something like:\n";
   errs() << "\n";
@@ -169,6 +186,7 @@ Error neo(BCDB &DB, StringRef Prefix) {
   errs() << "\t--id-type=INTEGER \\\n";
   errs() << "\t--nodes:Module:Decomposed=" << ModOut << " \\\n";
   errs() << "\t--nodes:Function=" << FuncOut << " \\\n";
+  errs() << "\t--nodes:Global=" << GlobalOut << " \\\n";
   errs() << "\t--nodes:Alias=" << AliasOut << " \\\n";
   errs() << "\t--relationships=" << ModGlobalsOut << " \n";
 
