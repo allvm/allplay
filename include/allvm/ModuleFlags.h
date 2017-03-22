@@ -51,12 +51,12 @@ inline std::vector<llvm::StringRef> getALLVMSources(llvm::Module *M) {
   return Sources;
 }
 
-inline llvm::StringRef getALLVMSourceString(llvm::Module *M) {
+inline std::string getALLVMSourceString(llvm::Module *M) {
   auto Sources = getALLVMSources(M);
   assert(!Sources.empty());
-  assert(Sources.size() == 1);
-
-  return Sources.front();
+  if (Sources.size() == 1)
+    return Sources.front();
+  return llvm::join(Sources.begin(), Sources.end(), ",");
 }
 
 inline llvm::StringRef getALLVMSourceString(llvm::Function *F) {
