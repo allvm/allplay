@@ -235,15 +235,15 @@ Error allvm::decompose_into_dir(StringRef BCFile, StringRef OutDir,
   auto M = parseIRFile(BCFile, Diag, C);
   if (!M)
     return make_error<StringError>("Unable to open IR file " + BCFile,
-        errc::invalid_argument);
+                                   errc::invalid_argument);
 
   if (auto Err = M->materializeAll())
     return Err;
   return decompose_into_dir(std::move(M), OutDir, Verbose);
 }
 
-Error allvm::decompose_into_dir(std::unique_ptr<llvm::Module> M, StringRef OutDir,
-                                bool Verbose) {
+Error allvm::decompose_into_dir(std::unique_ptr<llvm::Module> M,
+                                StringRef OutDir, bool Verbose) {
   if (auto EC = sys::fs::create_directories(OutDir))
     return errorCodeToError(EC);
 
@@ -255,7 +255,6 @@ Error allvm::decompose_into_dir(std::unique_ptr<llvm::Module> M, StringRef OutDi
                    Verbose);
 }
 
-
 Error allvm::decompose_into_tar(StringRef BCFile, StringRef OutDir,
                                 bool Verbose) {
   LLVMContext C;
@@ -263,15 +262,15 @@ Error allvm::decompose_into_tar(StringRef BCFile, StringRef OutDir,
   auto M = parseIRFile(BCFile, Diag, C);
   if (!M)
     return make_error<StringError>("Unable to open IR file " + BCFile,
-        errc::invalid_argument);
+                                   errc::invalid_argument);
 
   if (auto Err = M->materializeAll())
     return Err;
   return decompose_into_tar(std::move(M), OutDir, Verbose);
 }
 
-Error allvm::decompose_into_tar(std::unique_ptr<llvm::Module> M, StringRef TarFile,
-                                bool Verbose) {
+Error allvm::decompose_into_tar(std::unique_ptr<llvm::Module> M,
+                                StringRef TarFile, bool Verbose) {
   StringRef BasePath = "bits"; // TODO: something useful for this?
   auto TW = TarWriter::create(TarFile, BasePath);
   if (!TW)

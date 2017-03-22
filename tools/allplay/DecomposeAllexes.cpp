@@ -43,7 +43,8 @@ cl::opt<unsigned> Threads("j", cl::Optional, cl::init(0),
                           cl::desc("Number of threads, 0 to auto-detect"),
                           cl::sub(DecomposeAllexes));
 cl::opt<bool> ExtractModulesFromAllexes("extract-from-allexes", cl::Optional,
-    cl::init(false), cl::sub(DecomposeAllexes));
+                                        cl::init(false),
+                                        cl::sub(DecomposeAllexes));
 
 std::mutex ProgressMtx;
 
@@ -89,9 +90,9 @@ Error decomposeAllexes(BCDB &DB, ResourcePaths &RP) {
       std::string tarf = (OutBase + "/" + utostr(I++) + ".tar").str();
       TP.async(
           [&](auto Filename, auto OutTar) {
-          ExitOnErr(decompose_into_tar(Filename, OutTar, false));
-          std::lock_guard<std::mutex> Lock(ProgressMtx);
-          ++progress;
+            ExitOnErr(decompose_into_tar(Filename, OutTar, false));
+            std::lock_guard<std::mutex> Lock(ProgressMtx);
+            ++progress;
           },
           MI.Filename, tarf);
     }
@@ -100,13 +101,13 @@ Error decomposeAllexes(BCDB &DB, ResourcePaths &RP) {
       std::string tarf = (OutBase + "/" + utostr(I++) + ".tar").str();
       TP.async(
           [&](auto Filename, auto OutTar) {
-      auto A = ExitOnErr(Allexe::openForReading(Filename, RP));
-      LLVMContext C;
-      auto M = ExitOnErr(A->getModule(0, C));
-      ExitOnErr(M->materializeAll());
-          ExitOnErr(decompose_into_tar(std::move(M), OutTar, false));
-          std::lock_guard<std::mutex> Lock(ProgressMtx);
-          ++progress;
+            auto A = ExitOnErr(Allexe::openForReading(Filename, RP));
+            LLVMContext C;
+            auto M = ExitOnErr(A->getModule(0, C));
+            ExitOnErr(M->materializeAll());
+            ExitOnErr(decompose_into_tar(std::move(M), OutTar, false));
+            std::lock_guard<std::mutex> Lock(ProgressMtx);
+            ++progress;
           },
           AI.Filename, tarf);
     }
