@@ -42,14 +42,16 @@ int main(int argc, const char *argv[]) {
   ResourcePaths RP = ResourcePaths::getAnchored(argv[0]);
 
   for (auto *SC : cl::getRegisteredSubcommands()) {
-    // Skip special top-level subcommand
-    if (SC == &*cl::TopLevelSubCommand)
-      continue;
-    if (*SC)
+    if (*SC) {
+      // If no subcommand was provided, we need to explicitly check if this is
+      // the top-level subcommand.
+      if (SC == &*cl::TopLevelSubCommand)
+        break;
       if (auto C = dispatch(SC)) {
         allvm::ExitOnError("allplay: ")(C(RP));
         return 0;
       }
+    }
   }
 
   cl::PrintHelpMessage(false, true);
