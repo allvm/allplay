@@ -10,9 +10,9 @@
 
 #include "allvm/Allexe.h"
 #include "allvm/BCDB.h"
+#include "allvm/ExitOnError.h"
 #include "allvm/GitVersion.h"
 #include "allvm/ResourceAnchor.h"
-#include "allvm/ExitOnError.h"
 
 #include "subcommand-registry.h"
 
