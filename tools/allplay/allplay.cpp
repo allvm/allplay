@@ -12,6 +12,7 @@
 #include "allvm/BCDB.h"
 #include "allvm/GitVersion.h"
 #include "allvm/ResourceAnchor.h"
+#include "allvm/ExitOnError.h"
 
 #include "subcommand-registry.h"
 
@@ -46,7 +47,7 @@ int main(int argc, const char *argv[]) {
       continue;
     if (*SC)
       if (auto C = dispatch(SC)) {
-        ExitOnError("allplay: ")(C(RP));
+        allvm::ExitOnError("allplay: ")(C(RP));
         return 0;
       }
   }

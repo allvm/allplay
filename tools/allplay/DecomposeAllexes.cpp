@@ -4,6 +4,7 @@
 #include "subcommand-registry.h"
 
 #include "allvm/BCDB.h"
+#include "allvm/ExitOnError.h"
 
 #include <llvm/ADT/StringExtras.h>
 #include <llvm/Bitcode/BitcodeReader.h>
@@ -56,7 +57,7 @@ Error decomposeAllexes(BCDB &DB, ResourcePaths &RP) {
 
   // exit on error instead of propagating errors
   // out of the thread pool safely
-  ExitOnError ExitOnErr("allplay decompose-allexes: ");
+  allvm::ExitOnError ExitOnErr("allplay decompose-allexes: ");
 
   // Bump default pthread stack size, musl has conservative default
   // that apparently LLVM isn't happy with when we're splitting things.
