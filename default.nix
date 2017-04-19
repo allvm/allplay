@@ -9,9 +9,11 @@ in
 { nixpkgs ? default_nixpkgs }:
 
 with import nixpkgs {};
-callPackage ./build.nix {
-  inherit (llvmPackages_4) stdenv llvm clang lld;
-  rangev3 = callPackage ./rangev3.nix {
-    stdenv = llvmPackages_4.stdenv;
+{
+  allvm-analysis = callPackage ./build.nix {
+    inherit (llvmPackages_4) stdenv llvm clang lld;
+    rangev3 = callPackage ./rangev3.nix {
+      stdenv = llvmPackages_4.stdenv;
+    };
   };
 }
