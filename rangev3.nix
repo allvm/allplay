@@ -1,14 +1,16 @@
 { stdenv, cmake, fetchFromGitHub }:
 
-stdenv.mkDerivation rec {
+let
+  isMusl = stdenv.isMusl or false;
+in stdenv.mkDerivation rec {
   name = "range-v3-${version}";
-  version = "2017.02.09";
+  version = "2.4";
 
   src = fetchFromGitHub {
     owner = "ericniebler";
     repo = "range-v3";
-    rev = "da1a362efac70c3c524229dd8817f73d367e08d2";
-    sha256 = "01g6d87i06dj87fwyf0ji4m4b41n18yvhl89fxnpb0k3f2l79zhg";
+    rev = "d753c6652f3bd1bb9fac42cfbf11fd55d856f97d";
+    sha256 = "0qxmxqclq8nn5b5d1z8dfy5sw209ch6lxgfqmnsxmjwr6ms6v67z";
   };
 
   buildInputs = [ cmake ];
@@ -16,7 +18,7 @@ stdenv.mkDerivation rec {
   cmakeFlags = [ "-DRANGE_V3_NO_HEADER_CHECK=1" ];
 
   # Warning about recursive macro in musl headers is not helpful
-  patchPhase = stdenv.lib.optionalString stdenv.isMusl ''
+  patchPhase = stdenv.lib.optionalString isMusl ''
     sed -i 's,-Werror,,g' CMakeLists.txt
   '';
 
