@@ -155,6 +155,7 @@ Error allvm::decompose(
 
       size_t Empty = 0;
       size_t Count = 0;
+      size_t Before = ModQ.size();
       auto SplitFn = LLVMSplitModule ? llvm::SplitModule : allvm::SplitModule;
       SplitFn(std::move(CurM), SplitFactor,
               [&](std::unique_ptr<Module> MPart) {
@@ -173,6 +174,7 @@ Error allvm::decompose(
               PreserveLocals);
       assert(Count && "all partitions empty?!");
       assert((ModQ.size() - Before == Count) && "module queue count mismatch");
+      (void)Before; // Avoid unused warning
       assert((Count + Empty == SplitFactor) &&
              "callback not called splitfactor times");
 
