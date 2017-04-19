@@ -9,10 +9,25 @@ in
 { nixpkgs ? default_nixpkgs }:
 
 with import nixpkgs {};
-callPackage ./build.nix {
-  inherit (llvmPackages_4) llvm clang lld;
-  stdenv = overrideCC stdenv gcc-snapshot;
-  rangev3 = callPackage ./rangev3.nix {
-    stdenv = overrideCC stdenv gcc-snapshot;
+let
+  gcc_stdenv = overrideCC stdenv gcc-snapshot;
+  clang_stdenv = llvmPackages_4.stdenv;
+in rec {
+  # Nope, still doesn't work :(
+  # allvm-tools-gcc = callPackage ./build.nix {
+  #   inherit (llvmPackages_4) llvm clang lld;
+  #   stdenv = gcc_stdenv;
+  #   rangev3 = callPackage ./rangev3.nix {
+  #     stdenv = gcc_stdenv;
+  #   };
+  # };
+
+  allvm-tools-clang = callPackage ./build.nix {
+    inherit (llvmPackages_4) llvm clang lld;
+    stdenv = clang_stdenv;
+    rangev3 = callPackage ./rangev3.nix {
+      stdenv = clang_stdenv;
+    };
   };
+
 }
