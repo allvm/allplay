@@ -8,6 +8,41 @@
 
 **Website**: http://allvm.org
 
+## Nix Quickstart
+
+### Note
+
+Using Nix (without allvm-nixpkgs) does not build the tools the same way they're used
+for experiments, for example a musl-based toolchain is not used.
+
+For many purposes however that doesn't matter,
+and for development it's likely easier to use the in-tree expressions.
+
+### Installation
+
+To build and install into your profile, run:
+
+```console
+$ nix-env -f . -i
+```
+
+### Building
+From the root of the source directory, run:
+
+```console
+$ nix-build
+```
+
+The built result will be available in `./result`.
+
+### Development
+
+To enter a development shell with all dependencies available, run:
+
+```console
+$ nix-shell
+```
+
 ## Building with allvm-nixpkgs
 
 ### Building
@@ -60,15 +95,14 @@ as you would normally:
 ```
 
 
-## How to build (without using allvm-nixpkgs)
+## How to build (without using Nix)
 
 ### Requirements
 
 The main requirement is LLVM.
 To ensure your built LLVM will work and contains the required functionality:
 
-* Use a supported version.  The latest version tested and known to work is tracked here: [llvm-version-info.log](https://gitlab-beta.engr.illinois.edu/llvm/allvm-nixpkgs/blob/master/llvm-version-info.log).
-* Be sure to apply this [patch](https://gitlab-beta.engr.illinois.edu/llvm/allvm-nixpkgs/raw/master/pkgs/development/compilers/llvm/master/patches/llvm-R_X86_64_NONE.patch).
+* Use a supported version.  The currently supported version is LLVM 4.0.
 * Enable the `LLVM_INSTALL_UTILS` CMake option to ensure required tools like `FileCheck` are also installed.
 
 ### Building ALLVM Tools
@@ -81,14 +115,11 @@ $ mkdir build && cd build
 $ cmake -DLLVM_DIR=YOUR_LLVM_PREFIX/lib/cmake/llvm ..
 $ make check -j$(nproc)
 ```
-
-If you installed llvm to `/usr`, you can leave out the `-D LLVM_DIR=...` option
-and CMake will find llvm automatically.
-
+You only need to set `-D LLVM_DIR=...` when cmake has trouble finding your LLVM installation.
 
 ## Troubleshooting
 
-See the [issues page](https://gitlab-beta.engr.illinois.edu/llvm/allvm/issues) for known problems or to report a new one.
+See the [issues page](https://gitlab.engr.illinois.edu/llvm/allvm/issues) for known problems or to report a new one.
 
 The following issue is believed to be fixed regardless of whether allvm is built with GCC or Clang.
 However it frequently crops up again.
