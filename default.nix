@@ -10,9 +10,8 @@ in
 
 with import nixpkgs {};
 callPackage ./build.nix {
-  inherit (llvmPackages_4) llvm clang lld;
-  stdenv = overrideCC stdenv gcc6;
+  inherit (llvmPackages_4) stdenv llvm clang lld;
   rangev3 = callPackage ./rangev3.nix {
-    stdenv = overrideCC stdenv gcc6;
+    stdenv = llvmPackages_4.stdenv;
   };
 }
