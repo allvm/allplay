@@ -83,7 +83,8 @@ BCDB::loadFromAllexesIn(StringRef InputDirectory, ResourcePaths &RP) {
   return std::move(DB);
 }
 
-template <> struct llvm::DenseMapInfo<llvm::sys::fs::UniqueID> {
+namespace llvm {
+template <> struct DenseMapInfo<llvm::sys::fs::UniqueID> {
   using PairDMI = llvm::DenseMapInfo<std::pair<uint64_t, uint64_t>>;
   using UniqueID = llvm::sys::fs::UniqueID;
   static inline UniqueID getEmptyKey() {
@@ -102,6 +103,7 @@ template <> struct llvm::DenseMapInfo<llvm::sys::fs::UniqueID> {
     return LHS == RHS;
   }
 };
+} // end namespace llvm
 
 llvm::Expected<std::unique_ptr<BCDB>>
 BCDB::loadFromBitcodeIn(StringRef InputDirectory, ResourcePaths &) {
