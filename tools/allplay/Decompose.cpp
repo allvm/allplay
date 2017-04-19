@@ -155,7 +155,6 @@ Error allvm::decompose(
 
       size_t Empty = 0;
       size_t Count = 0;
-      size_t Before = ModQ.size();
       auto SplitFn = LLVMSplitModule ? llvm::SplitModule : allvm::SplitModule;
       SplitFn(std::move(CurM), SplitFactor,
               [&](std::unique_ptr<Module> MPart) {

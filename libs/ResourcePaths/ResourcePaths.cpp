@@ -29,6 +29,8 @@ std::string getPath(StringRef PrefixDir, StringRef Dir, StringRef File) {
   sys::path::append(Path, Dir, File);
   auto EC = sys::fs::make_absolute(Path);
   assert(!EC && "Failed to create absolute path for resource file");
+  if (!EC)
+    abort();
   assert(sys::fs::exists(Path));
   return Path.str();
 }
