@@ -1,5 +1,5 @@
 # This file is usually 'default.nix'
-{ stdenv, cmake, git, llvm, clang, lld, zlib, python2, pandoc, texlive }:
+{ stdenv, cmake, git, llvm, clang, lld, zlib, python2, pandoc, texlive, rangev3 }:
 
 let
   inherit (stdenv) lib;
@@ -16,13 +16,13 @@ let
 in
 
 stdenv.mkDerivation {
-  name = "allvm-tools-git-${gitshort}";
+  name = "allvm-tools-analysis-git-${gitshort}";
   version = gitshort;
 
   src = builtins.filterSource sourceFilter ./.;
 
   nativeBuildInputs = [ cmake git python2 pandoc tex ];
-  buildInputs = [ llvm lld zlib ];
+  buildInputs = [ llvm lld zlib rangev3 ];
 
   doCheck = true;
 

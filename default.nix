@@ -11,4 +11,5 @@ in
 with import nixpkgs {};
 callPackage ./build.nix {
   inherit (llvmPackages_4) llvm clang lld;
+  rangev3 = callPackage ./rangev3.nix { };
 }
