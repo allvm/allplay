@@ -293,10 +293,10 @@ Error allvm::decompose_into_tar(std::unique_ptr<llvm::Module> M,
 
 namespace {
 CommandRegistration
-    Unused(&Decompose, [](ResourcePaths &RP LLVM_ATTRIBUTE_UNUSED) -> Error {
-      if (WriteTar)
-        return decompose_into_tar(InputFile, OutputPath, true);
-      else
-        return decompose_into_dir(InputFile, OutputPath, true);
-    });
+Unused(&Decompose, [](ResourcePaths &RP LLVM_ATTRIBUTE_UNUSED) -> Error {
+  if (WriteTar)
+    return decompose_into_tar(InputFile, OutputPath, true);
+  else
+    return decompose_into_dir(InputFile, OutputPath, true);
+});
 } // end anonymous namespace

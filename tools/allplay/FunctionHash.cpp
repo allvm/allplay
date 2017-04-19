@@ -226,10 +226,11 @@ Error functionHash(BCDB &DB) {
     RANGES_FOR(auto M, ModGroups | group_by_module()) {
       auto Count = ranges::distance(M);
       auto Source = M.begin()->Source;
-      Graph.addVertex(Source, {{"label", getModLabel(Source)},
-                               {"style", "filled"},
-                               {"fontsize", Twine(Count + MinFontSize).str()},
-                               {"fillcolor", "cyan"}});
+      Graph.addVertex(Source,
+                      {{"label", getModLabel(Source)},
+                       {"style", "filled"},
+                       {"fontsize", Twine(Count + MinFontSize).str()},
+                       {"fillcolor", "cyan"}});
     }
 
     RANGES_FOR(auto H, HashGroups | group_by_hash()) {

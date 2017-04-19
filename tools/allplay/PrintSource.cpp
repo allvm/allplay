@@ -26,31 +26,31 @@ cl::opt<bool> OnlyPrintSource("only-print-source", cl::Optional,
                               cl::sub(PrintSource));
 
 CommandRegistration
-    Unused(&PrintSource, [](ResourcePaths &RP LLVM_ATTRIBUTE_UNUSED) -> Error {
-      if (!OnlyPrintSource)
-        errs() << "Loading file '" << InputFilename << "'...\n";
-      LLVMContext C;
-      SMDiagnostic Diag;
-      auto M = parseIRFile(InputFilename, Diag, C);
-      if (!M)
-        return make_error<StringError>(
-            "Unable to open IR file " + InputFilename, errc::invalid_argument);
+Unused(&PrintSource, [](ResourcePaths &RP LLVM_ATTRIBUTE_UNUSED) -> Error {
+  if (!OnlyPrintSource)
+    errs() << "Loading file '" << InputFilename << "'...\n";
+  LLVMContext C;
+  SMDiagnostic Diag;
+  auto M = parseIRFile(InputFilename, Diag, C);
+  if (!M)
+    return make_error<StringError>("Unable to open IR file " + InputFilename,
+                                   errc::invalid_argument);
 
-      if (auto Err = M->materializeMetadata())
-        return Err;
+  if (auto Err = M->materializeMetadata())
+    return Err;
 
-      auto WSrc = getWLLVMSource(M.get());
-      if (WSrc.empty()) {
-        return make_error<StringError>(
-            "Module did not contain WLLVM Source module flag, or invalid",
-            errc::invalid_argument);
-      }
+  auto WSrc = getWLLVMSource(M.get());
+  if (WSrc.empty()) {
+    return make_error<StringError>(
+        "Module did not contain WLLVM Source module flag, or invalid",
+        errc::invalid_argument);
+  }
 
-      if (!OnlyPrintSource)
-        outs() << "WLLVM Source: ";
-      outs() << WSrc << "\n";
+  if (!OnlyPrintSource)
+    outs() << "WLLVM Source: ";
+  outs() << WSrc << "\n";
 
-      return Error::success();
-    });
+  return Error::success();
+});
 
 } // end anonymous namespace

@@ -63,8 +63,8 @@ Error uncombineModule(StringRef Filename, StringRef Prefix) {
 }
 
 CommandRegistration
-    Unused(&Uncombine, [](ResourcePaths &RP LLVM_ATTRIBUTE_UNUSED) -> Error {
-      return uncombineModule(InputFilename, OutputPrefix);
-    });
+Unused(&Uncombine, [](ResourcePaths &RP LLVM_ATTRIBUTE_UNUSED) -> Error {
+  return uncombineModule(InputFilename, OutputPrefix);
+});
 
 } // end anonymous namespace
