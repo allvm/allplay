@@ -41,8 +41,8 @@ cl::opt<std::string>
                cl::desc("name of file to write graph, does nothing if empty"),
                cl::init(""), cl::sub(FunctionHashes));
 cl::opt<bool>
-    PrintFunctions("print-functions", cl::Optional, cl::init(true),
-                   cl::desc("Print functions grouped by hash (default=true)"),
+    PrintFunctions("print-functions", cl::Optional, cl::init(false),
+                   cl::desc("Print functions grouped by hash (default=false)"),
                    cl::sub(FunctionHashes));
 
 cl::opt<unsigned> GraphThreshold(
