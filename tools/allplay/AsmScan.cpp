@@ -27,6 +27,7 @@ Error asmScan(BCDB &DB) {
   errs() << "Starting Asm Scan...\n";
 
   // TODO: Would it be useful to store asm strings for aggregate analysis?
+  // TODO: Count occurrences of inline asm?
   DenseSet<decltype(ModuleInfo::ModuleCRC)> ModulesWithModuleAsm;
   DenseSet<decltype(ModuleInfo::ModuleCRC)> ModulesWithInlineAsm;
 
