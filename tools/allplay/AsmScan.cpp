@@ -15,7 +15,8 @@ using namespace llvm;
 
 namespace {
 
-cl::SubCommand AsmScan("asmscan", "Search modules for module-level and inline asm");
+cl::SubCommand AsmScan("asmscan",
+                       "Search modules for module-level and inline asm");
 
 cl::opt<std::string> InputDirectory(cl::Positional, cl::Required,
                                     cl::desc("<input directory to scan>"),
@@ -42,21 +43,22 @@ Error asmScan(BCDB &DB) {
 
     auto &Asm = M->getModuleInlineAsm();
     if (!Asm.empty()) {
-      errs() << MI.Filename << " has module-level inline asm: ||" << Asm << "||\n";
+      errs() << MI.Filename << " has module-level inline asm: ||" << Asm
+             << "||\n";
       ModulesWithModuleAsm.insert(MI.ModuleCRC);
     }
 
-
-    for (auto &F: *M) {
-      for (auto &B: F) {
-        for (auto &I: B) {
+    for (auto &F : *M) {
+      for (auto &B : F) {
+        for (auto &I : B) {
           CallSite CS(&I);
-          if (!CS) continue;
+          if (!CS)
+            continue;
 
           if (auto *IA = dyn_cast<InlineAsm>(CS.getCalledValue())) {
             // Found inline asm!
-            errs() << MI.Filename << " has inline asm in @" <<
-              F.getName() << ": [[" << I << "]]\n";
+            errs() << MI.Filename << " has inline asm in @" << F.getName()
+                   << ": [[" << I << "]]\n";
             ModulesWithInlineAsm.insert(MI.ModuleCRC);
           }
         }
@@ -71,10 +73,8 @@ Error asmScan(BCDB &DB) {
   for (auto &A : DB.getAllexes()) {
 
     auto hasModuleInSet = [](auto &A, auto &Set) {
-    return  std::any_of(
-        A.Modules.begin(), A.Modules.end(), [&Set](auto &M) {
-          return Set.count(M.ModuleCRC);
-        });
+      return std::any_of(A.Modules.begin(), A.Modules.end(),
+                         [&Set](auto &M) { return Set.count(M.ModuleCRC); });
     };
 
     bool modAsm = hasModuleInSet(A, ModulesWithModuleAsm);
@@ -85,7 +85,8 @@ Error asmScan(BCDB &DB) {
     if (inlineAsm)
       ++InlineAllexes;
     if (modAsm || inlineAsm)
-      errs() << A.Filename << " module-level? " << modAsm << " inline? " << inlineAsm << "\n";
+      errs() << A.Filename << " module-level? " << modAsm << " inline? "
+             << inlineAsm << "\n";
   }
 
   // little helper
@@ -96,7 +97,8 @@ Error asmScan(BCDB &DB) {
   };
 
   errs() << "Number of modules in DB: " << DB.getMods().size() << "\n";
-  errs() << "Modules with mod-level asm: " << ModulesWithModuleAsm.size() << "\n";
+  errs() << "Modules with mod-level asm: " << ModulesWithModuleAsm.size()
+         << "\n";
   printPercent(ModulesWithModuleAsm.size(), DB.getMods().size());
   errs() << "Modules with inline asm: " << ModulesWithInlineAsm.size() << "\n";
   printPercent(ModulesWithInlineAsm.size(), DB.getMods().size());
