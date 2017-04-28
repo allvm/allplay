@@ -74,8 +74,8 @@ Error asmScan(BCDB &DB) {
   size_t InlineAllexes = 0;
   for (auto &A : DB.getAllexes()) {
 
-    auto hasModuleInSet = [](auto &A, auto &Set) {
-      return std::any_of(A.Modules.begin(), A.Modules.end(),
+    auto hasModuleInSet = [](auto &Allexe, auto &Set) {
+      return std::any_of(Allexe.Modules.begin(), Allexe.Modules.end(),
                          [&Set](auto &M) { return Set.count(M.ModuleCRC); });
     };
 
