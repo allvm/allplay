@@ -130,6 +130,16 @@ auto to_vec_sort_uniq() {
   return ranges::to_vector | ranges::action::sort | ranges::action::unique;
 }
 
+auto size_addend(size_t count) {
+  if (!UseLogSize)
+    return count;
+  return static_cast<size_t>(1 + 3*std::log(count));
+}
+
+auto compute_size(size_t count) {
+  return Twine(MinFontSize + size_addend(count)).str();
+}
+
 Error functionHash(BCDB &DB) {
 
   errs() << "Materializing and computing function hashes...\n";
@@ -229,26 +239,20 @@ Error functionHash(BCDB &DB) {
     auto getModLabel = [](StringRef S) { return S.rsplit('/').second; };
     RANGES_FOR(auto M, ModGroups | group_by_module()) {
       auto Count = ranges::distance(M);
-      // Don't bother with fractional font sizes
-      auto SizeAddend =
-          static_cast<size_t>(UseLogSize ? std::log(Count) : Count);
       auto Source = M.begin()->Source;
       Graph.addVertex(Source,
                       {{"label", getModLabel(Source)},
                        {"style", "filled"},
-                       {"fontsize", Twine(MinFontSize + SizeAddend).str()},
+                       {"fontsize", compute_size(Count)},
                        {"fillcolor", "cyan"}});
     }
 
     RANGES_FOR(auto H, HashGroups | group_by_hash()) {
       auto Count = ranges::distance(H);
-      auto SizeAddend =
-          static_cast<size_t>(UseLogSize ? std::log(Count) : Count);
       auto CountStr = Twine(Count).str();
-      auto Size = Twine(MinFontSize + SizeAddend).str();
       auto HStr = Twine(H.begin()->H).str();
       Graph.addVertex(
-          HStr, {{"label", CountStr}, {"fontsize", Size}, {"shape", "circle"}});
+          HStr, {{"label", CountStr}, {"fontsize", compute_size(Count)}, {"shape", "circle"}});
     }
 
     RANGES_FOR(auto &MH, ModHashPairs) {
