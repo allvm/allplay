@@ -55,7 +55,7 @@ cl::opt<unsigned>
                 cl::sub(FunctionHashes));
 cl::opt<bool> UseLogSize(
     "use-log-size", cl::Optional, cl::init(true),
-    cl::desc("Size graph nodes by (1+log(count))^2 instead of linear count"),
+    cl::desc("Size graph nodes by (2*log(count))^2 instead of linear count"),
     cl::sub(FunctionHashes));
 
 cl::opt<std::string> WriteCSV("write-csv", cl::Optional, cl::init(""),
@@ -134,7 +134,7 @@ auto size_addend(size_t count) {
   if (!UseLogSize)
     return count;
   // log^2(x), adjusted
-  auto l = 1 + std::log(count);
+  auto l = 2 * std::log(count);
   return static_cast<size_t>(l * l);
 }
 
