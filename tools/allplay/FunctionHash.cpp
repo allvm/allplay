@@ -238,7 +238,7 @@ Error functionHash(BCDB &DB) {
 
     auto getModLabel = [](StringRef S) { return S.rsplit('/').second; };
     RANGES_FOR(auto M, ModGroups | group_by_module()) {
-      auto Count = ranges::distance(M);
+      auto Count = static_cast<size_t>(ranges::distance(M));
       auto Source = M.begin()->Source;
       Graph.addVertex(Source,
                       {{"label", getModLabel(Source)},
@@ -248,7 +248,7 @@ Error functionHash(BCDB &DB) {
     }
 
     RANGES_FOR(auto H, HashGroups | group_by_hash()) {
-      auto Count = ranges::distance(H);
+      auto Count = static_cast<size_t>(ranges::distance(H));
       auto CountStr = Twine(Count).str();
       auto HStr = Twine(H.begin()->H).str();
       Graph.addVertex(HStr,
