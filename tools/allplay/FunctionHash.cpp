@@ -133,7 +133,7 @@ auto to_vec_sort_uniq() {
 auto size_addend(size_t count) {
   if (!UseLogSize)
     return count;
-  return static_cast<size_t>(1 + 3*std::log(count));
+  return static_cast<size_t>(1 + 3 * std::log(count));
 }
 
 auto compute_size(size_t count) {
@@ -251,8 +251,10 @@ Error functionHash(BCDB &DB) {
       auto Count = ranges::distance(H);
       auto CountStr = Twine(Count).str();
       auto HStr = Twine(H.begin()->H).str();
-      Graph.addVertex(
-          HStr, {{"label", CountStr}, {"fontsize", compute_size(Count)}, {"shape", "circle"}});
+      Graph.addVertex(HStr,
+                      {{"label", CountStr},
+                       {"fontsize", compute_size(Count)},
+                       {"shape", "circle"}});
     }
 
     RANGES_FOR(auto &MH, ModHashPairs) {
