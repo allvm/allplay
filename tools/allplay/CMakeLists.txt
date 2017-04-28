@@ -16,6 +16,7 @@ add_llvm_tool(allplay
   allplay.cpp
 
   # subcommands
+  AsmScan.cpp
   CombinedModule.cpp
   Cypher.cpp
   Decompose.cpp
