@@ -67,7 +67,8 @@ Error asmScan(BCDB &DB) {
   }
 
   errs() << "\n-------------------\n";
-  errs() << "Allexes containing matched module:\n";
+  errs() << "Allexes containing some form of asm:\n";
+  errs() << "(ModuleLevelAsm?,InlineAsm?,AllexePath)\n";
   size_t ModAllexes = 0;
   size_t InlineAllexes = 0;
   for (auto &A : DB.getAllexes()) {
@@ -85,8 +86,7 @@ Error asmScan(BCDB &DB) {
     if (inlineAsm)
       ++InlineAllexes;
     if (modAsm || inlineAsm)
-      errs() << A.Filename << " module-level? " << modAsm << " inline? "
-             << inlineAsm << "\n";
+      errs() << modAsm << "," << inlineAsm << "," << A.Filename << "\n";
   }
 
   // little helper
