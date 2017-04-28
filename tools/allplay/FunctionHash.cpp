@@ -53,6 +53,10 @@ cl::opt<unsigned>
     MinFontSize("min-font-size", cl::Optional, cl::init(12),
                 cl::desc("Minimum (starting) font size for nodes"),
                 cl::sub(FunctionHashes));
+cl::opt<bool> UseLogSize(
+    "use-log-size", cl::Optional, cl::init(true),
+    cl::desc("Size graph nodes by log(count) instead of linear count"),
+    cl::sub(FunctionHashes));
 
 cl::opt<std::string> WriteCSV("write-csv", cl::Optional, cl::init(""),
                               cl::sub(FunctionHashes));
@@ -225,18 +229,23 @@ Error functionHash(BCDB &DB) {
     auto getModLabel = [](StringRef S) { return S.rsplit('/').second; };
     RANGES_FOR(auto M, ModGroups | group_by_module()) {
       auto Count = ranges::distance(M);
+      // Don't bother with fractional font sizes
+      auto SizeAddend =
+          static_cast<size_t>(UseLogSize ? std::log(Count) : Count);
       auto Source = M.begin()->Source;
       Graph.addVertex(Source,
                       {{"label", getModLabel(Source)},
                        {"style", "filled"},
-                       {"fontsize", Twine(Count + MinFontSize).str()},
+                       {"fontsize", Twine(MinFontSize + SizeAddend).str()},
                        {"fillcolor", "cyan"}});
     }
 
     RANGES_FOR(auto H, HashGroups | group_by_hash()) {
       auto Count = ranges::distance(H);
+      auto SizeAddend =
+          static_cast<size_t>(UseLogSize ? std::log(Count) : Count);
       auto CountStr = Twine(Count).str();
-      auto Size = Twine(Count + MinFontSize).str();
+      auto Size = Twine(MinFontSize + SizeAddend).str();
       auto HStr = Twine(H.begin()->H).str();
       Graph.addVertex(
           HStr, {{"label", CountStr}, {"fontsize", Size}, {"shape", "circle"}});
