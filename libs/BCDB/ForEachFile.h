@@ -41,18 +41,22 @@ static inline llvm::Error foreach_file_in_directory(const llvm::Twine &Path,
       // XXX: Checking 'status' regardless of 'EC' is badness,
       // but due to API strangeness I think this is "correct":
       if (status.type() == llvm::sys::fs::file_type::file_not_found) {
-        llvm::errs() << "Warning, file not found when accessing path '" << File->path() << "' (broken symlink?), attempting to skip.\n";
+        llvm::errs() << "Warning, file not found when accessing path '"
+                     << File->path()
+                     << "' (broken symlink?), attempting to skip.\n";
         File.no_push();
         EC.clear();
         continue;
       }
 
-      // Blargh. Check that recursing into this directory won't break everything.
+      // Blargh. Check that recursing into this directory won't break
+      // everything.
       if (llvm::sys::fs::is_directory(status)) {
         std::error_code dirEC;
         llvm::sys::fs::directory_iterator throwaway(File->path(), dirEC);
         if (dirEC) {
-          llvm::errs() << "Warning, error scanning directory '" << File->path() << "': " << dirEC.message() << ", attempting to skip.\n";
+          llvm::errs() << "Warning, error scanning directory '" << File->path()
+                       << "': " << dirEC.message() << ", attempting to skip.\n";
           File.no_push();
           continue;
         }
