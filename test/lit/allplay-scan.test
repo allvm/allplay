@@ -1,4 +1,9 @@
 
+
+Nuke previous temp directory, if it exists,
+extra care required since we drop permissions later:
+
+RUN: chmod u+rwx -R %t || true
 RUN: rm %t -rf
 RUN: mkdir %t
 
@@ -26,6 +31,11 @@ BROKEN-SAME: broken symlink
 RUN: rm %t/a/b/invalid
 
 Check permissions problems
-RUN: ln -s /root %t/a/root-perms
+RUN: chmod a-rwx %t/a
 RUN: allplay functionhashes %t |& FileCheck %s --check-prefix PERM
 PERM: Permission denied
+
+Try to leave things in a reasonable state,
+without this the directory can't be rm -rf'd
+
+RUN: chmod u+rwx -R %t || true
