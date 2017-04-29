@@ -17,8 +17,7 @@ RUN: allplay functionhashes %t
 Check handling of symbolic link loops in traversal:
 RUN: mkdir -p %t/a/b/
 RUN: ln -s %t/a %t/a/b/a
-RUN: not allplay functionhashes %t |& FileCheck %s --check-prefix LOOP
-LOOP: Symbolic link loop
+RUN: not allplay functionhashes %t
 RUN: rm %t/a/b/a
 
 Check broken symlinks:
