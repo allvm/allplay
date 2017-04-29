@@ -1,0 +1,31 @@
+
+RUN: rm %t -rf
+RUN: mkdir %t
+
+RUN: llvm-as %p/Inputs/simplest.ll -o %t.bc
+RUN: bc2allvm %t.bc -f -o %t/simple-allexe
+RUN: ln -s %t/simple-allexe %t/simple-allexe-link
+
+RUN: allplay functionhashes %t
+
+
+Check handling of symbolic link loops in traversal:
+RUN: mkdir -p %t/a/b/
+RUN: ln -s %t/a %t/a/b/a
+RUN: not allplay functionhashes %t |& FileCheck %s --check-prefix LOOP
+LOOP: Symbolic link loop
+RUN: rm %t/a/b/a
+
+Check broken symlinks:
+RUN: ln -s /invalid/path/nope/nope %t/a/b/invalid
+
+These should be skipped over, check:
+RUNX: allplay functionhashes %t |& FileCheck %s --check-prefix BROKEN
+BROKEN: invalid
+BROKEN-SAME: broken symlink
+RUN: rm %t/a/b/invalid
+
+Check permissions problems
+RUN: ln -s /root %t/a/root-perms
+RUN: allplay functionhashes %t |& FileCheck %s --check-prefix PERM
+PERM: Permission denied
