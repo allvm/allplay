@@ -1,8 +1,8 @@
 #include "subcommand-registry.h"
 
 #include "boost_progress.h"
+#include "cpptoml.h"
 
-#include "allvm/AsmInfo.h"
 #include "allvm/BCDB.h"
 
 #include <llvm/ADT/DenseSet.h>
@@ -34,7 +34,7 @@ Error asmScan(BCDB &DB) {
   DenseSet<decltype(ModuleInfo::ModuleCRC)> ModulesWithModuleAsm;
   DenseSet<decltype(ModuleInfo::ModuleCRC)> ModulesWithInlineAsm;
 
-  std::vector<AsmInfo> Infos;
+  auto root = cpptoml::make_table();
 
   boost::progress_display mod_progress(DB.getMods().size(), llvm::errs());
   for (auto MI : DB.getMods()) {
@@ -49,18 +49,14 @@ Error asmScan(BCDB &DB) {
       return Err;
 
     auto &Asm = M->getModuleInlineAsm();
-    AsmInfo AI;
-    AI.Path = MI.Filename;
+    auto mod_table = cpptoml::make_table();
     if (!Asm.empty()) {
-      AI.Module = Asm;
+      mod_table->insert("module", Asm);
       ModulesWithModuleAsm.insert(MI.ModuleCRC);
     }
 
-    std::string InstStr;
-    raw_string_ostream OS(InstStr);
     for (auto &F : *M) {
-      AsmEntry AE;
-      AE.Function = F.getName();
+      auto inst_table = cpptoml::make_array();
       for (auto &B : F) {
         for (auto &I : B) {
           CallSite CS(&I);
@@ -69,27 +65,27 @@ Error asmScan(BCDB &DB) {
 
           if (auto *IA = dyn_cast<InlineAsm>(CS.getCalledValue())) {
             // Found inline asm!
-            InstStr.clear();
+            std::string InstStr;
+            raw_string_ostream OS(InstStr);
             OS << I;
-            AE.Instructions.push_back(InstStr);
+            inst_table->push_back(InstStr);
             ModulesWithInlineAsm.insert(MI.ModuleCRC);
           }
         }
       }
-      if (!AE.Instructions.empty()) {
-        if (!AI.Inline)
-          AI.Inline = std::vector<AsmEntry>();
-        AI.Inline->push_back(AE);
-      }
+      if (inst_table->begin() != inst_table->end())
+        mod_table->insert(F.getName(), inst_table);
     }
-    if (AI.Module.hasValue() || AI.Inline.hasValue())
-      Infos.push_back(AI);
+    if (!mod_table->empty()) {
+      root->insert(MI.Filename, mod_table);
+    }
     ++mod_progress;
   }
 
   errs() << "Asm scan complete: \n";
-  llvm::yaml::Output yout(outs());
-  yout << Infos;
+  std::stringstream ss;
+  ss << *root;
+  outs() << ss.str() << "\n";
 
   errs() << "\n-------------------\n";
   errs() << "Allexes containing some form of asm:\n";
