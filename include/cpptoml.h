@@ -4,6 +4,8 @@
  * @date May 2013
  */
 
+#pragma clang system_header
+
 #ifndef _CPPTOML_H_
 #define _CPPTOML_H_
 

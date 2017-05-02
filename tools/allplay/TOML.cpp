@@ -11,8 +11,7 @@ using namespace llvm;
 
 namespace {
 
-cl::SubCommand Toml("toml",
-                       "Print allexe contents as toml");
+cl::SubCommand Toml("toml", "Print allexe contents as toml");
 
 cl::opt<std::string> InputDirectory(cl::Positional, cl::Required,
                                     cl::desc("<input directory to scan>"),
@@ -22,9 +21,9 @@ Error toml(BCDB &DB) {
 
   auto root = cpptoml::make_table();
 
-  for (auto &A: DB.getAllexes()) {
+  for (auto &A : DB.getAllexes()) {
     auto modules = cpptoml::make_array();
-    for (auto &M: A.Modules)
+    for (auto &M : A.Modules)
       modules->push_back(M.Filename);
     root->insert(A.Filename, modules);
   }
@@ -49,4 +48,3 @@ CommandRegistration Unused(&Toml, [](ResourcePaths &RP) -> Error {
 });
 
 } // end anonymous namespace
-
