@@ -2891,6 +2891,9 @@ class toml_writer
         {
             if (i > 0)
                 write(", ");
+            endline();
+            indent();
+            write("\t");
 
             if (a.get()[i]->is_array())
             {
@@ -2900,6 +2903,11 @@ class toml_writer
             {
                 a.get()[i]->accept(*this, true);
             }
+        }
+
+        if (a.get().size() > 0) {
+          endline();
+          indent();
         }
 
         write("]");

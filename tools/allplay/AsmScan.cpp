@@ -1,6 +1,9 @@
 #include "subcommand-registry.h"
 
 #include "boost_progress.h"
+
+// Preserve insert order
+#define CPPTOML_USE_MAP
 #include "cpptoml.h"
 
 #include "allvm/BCDB.h"
@@ -55,9 +58,9 @@ Error asmScan(BCDB &DB) {
       ModulesWithModuleAsm.insert(MI.ModuleCRC);
     }
 
-    auto inline_table = cpptoml::make_table_array();
+    auto inline_table = cpptoml::make_table();
     for (auto &F : *M) {
-      auto inst_table = cpptoml::make_array();
+      auto inst_array = cpptoml::make_array();
       for (auto &B : F) {
         for (auto &I : B) {
           CallSite CS(&I);
@@ -69,19 +72,15 @@ Error asmScan(BCDB &DB) {
             std::string InstStr;
             raw_string_ostream OS(InstStr);
             OS << I;
-            inst_table->push_back(InstStr);
+            inst_array->push_back(InstStr);
             ModulesWithInlineAsm.insert(MI.ModuleCRC);
           }
         }
       }
-      if (inst_table->begin() != inst_table->end()) {
-        auto func_table = cpptoml::make_table();
-        func_table->insert("name", F.getName());
-        func_table->insert("instructions", inst_table);
-        inline_table->push_back(func_table);
-      }
+      if (inst_array->begin() != inst_array->end())
+        inline_table->insert(F.getName(), inst_array);
     }
-    if (inline_table->begin()  != inline_table->end())
+    if (!inline_table->empty())
       mod_table->insert("inline", inline_table);
     if (!mod_table->empty()) {
       root->insert(MI.Filename, mod_table);
