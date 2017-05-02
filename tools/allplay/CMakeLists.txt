@@ -28,6 +28,7 @@ add_llvm_tool(allplay
   NeoDecomposed.cpp
   PrintSource.cpp
   StringGraph.cpp
+  TOML.cpp
   Uncombine.cpp
 
   subcommand-registry.cpp
