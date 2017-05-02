@@ -59,9 +59,9 @@ Error asmScan(BCDB &DB) {
     std::string InstStr;
     raw_string_ostream OS(InstStr);
     for (auto &F : *M) {
+      AsmEntry AE;
+      AE.Function = F.getName();
       for (auto &B : F) {
-        AsmEntry AE;
-        AE.Function = F.getName();
         for (auto &I : B) {
           CallSite CS(&I);
           if (!CS)
@@ -75,11 +75,11 @@ Error asmScan(BCDB &DB) {
             ModulesWithInlineAsm.insert(MI.ModuleCRC);
           }
         }
-        if (!AE.Instructions.empty()) {
-          if (!AI.Inline)
-            AI.Inline = std::vector<AsmEntry>();
-          AI.Inline->push_back(AE);
-        }
+      }
+      if (!AE.Instructions.empty()) {
+        if (!AI.Inline)
+          AI.Inline = std::vector<AsmEntry>();
+        AI.Inline->push_back(AE);
       }
     }
     if (AI.Module.hasValue() || AI.Inline.hasValue())
