@@ -30,7 +30,7 @@ template <>
       io.mapRequired("path", info.Path);
       io.mapOptional("inline", info.Inline);
       io.mapOptional("module", info.Module);
-    };
+    }
   };
 
 template <>
@@ -38,14 +38,14 @@ template <>
     static void mapping(IO &io, allvm::AsmEntry &ae) {
       io.mapRequired("function", ae.Function);
       io.mapRequired("instructions", ae.Instructions);
-    };
+    }
   };
 
 } // end namespace yaml
 } // end namespace llvm
 
-LLVM_YAML_IS_SEQUENCE_VECTOR(allvm::AsmEntry);
-LLVM_YAML_IS_SEQUENCE_VECTOR(allvm::AsmInfo);
-LLVM_YAML_IS_SEQUENCE_VECTOR(std::string);
+LLVM_YAML_IS_SEQUENCE_VECTOR(allvm::AsmEntry)
+LLVM_YAML_IS_SEQUENCE_VECTOR(allvm::AsmInfo)
+LLVM_YAML_IS_SEQUENCE_VECTOR(std::string)
 
 #endif // ALLVM_ASMINFO_H
