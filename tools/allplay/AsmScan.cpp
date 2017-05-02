@@ -83,6 +83,7 @@ Error asmScan(BCDB &DB) {
       Infos.push_back(AI);
   }
 
+  errs() << "Asm scan complete: \n";
   llvm::yaml::Output yout(outs());
   yout << Infos;
 
