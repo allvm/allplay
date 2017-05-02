@@ -1,5 +1,7 @@
 #include "subcommand-registry.h"
 
+#include "boost_progress.h"
+
 #include "allvm/AsmInfo.h"
 #include "allvm/BCDB.h"
 
@@ -34,6 +36,7 @@ Error asmScan(BCDB &DB) {
 
   std::vector<AsmInfo> Infos;
 
+  boost::progress_display mod_progress(DB.getMods().size());
   for (auto MI : DB.getMods()) {
     SMDiagnostic SM;
     LLVMContext C;
@@ -73,14 +76,15 @@ Error asmScan(BCDB &DB) {
           }
         }
         if (!AE.Instructions.empty()) {
-          if (!AI.Inline) AI.Inline = std::vector<AsmEntry>();
+          if (!AI.Inline)
+            AI.Inline = std::vector<AsmEntry>();
           AI.Inline->push_back(AE);
         }
-
       }
     }
     if (AI.Module.hasValue() || AI.Inline.hasValue())
       Infos.push_back(AI);
+    ++mod_progress;
   }
 
   errs() << "Asm scan complete: \n";
