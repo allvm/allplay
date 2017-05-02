@@ -24,22 +24,20 @@ struct AsmInfo {
 namespace llvm {
 namespace yaml {
 
-template <>
-  struct MappingTraits<allvm::AsmInfo> {
-    static void mapping(IO &io, allvm::AsmInfo &info) {
-      io.mapRequired("path", info.Path);
-      io.mapOptional("inline", info.Inline);
-      io.mapOptional("module", info.Module);
-    }
-  };
+template <> struct MappingTraits<allvm::AsmInfo> {
+  static void mapping(IO &io, allvm::AsmInfo &info) {
+    io.mapRequired("path", info.Path);
+    io.mapOptional("inline", info.Inline);
+    io.mapOptional("module", info.Module);
+  }
+};
 
-template <>
-  struct MappingTraits<allvm::AsmEntry> {
-    static void mapping(IO &io, allvm::AsmEntry &ae) {
-      io.mapRequired("function", ae.Function);
-      io.mapRequired("instructions", ae.Instructions);
-    }
-  };
+template <> struct MappingTraits<allvm::AsmEntry> {
+  static void mapping(IO &io, allvm::AsmEntry &ae) {
+    io.mapRequired("function", ae.Function);
+    io.mapRequired("instructions", ae.Instructions);
+  }
+};
 
 } // end namespace yaml
 } // end namespace llvm
