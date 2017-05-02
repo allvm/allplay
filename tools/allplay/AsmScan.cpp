@@ -9,9 +9,46 @@
 #include <llvm/Support/Format.h>
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_ostream.h>
+#include <llvm/Support/YAMLParser.h>
+#include <llvm/Support/YAMLTraits.h>
 
 using namespace allvm;
 using namespace llvm;
+
+using llvm::yaml::MappingTraits;
+using llvm::yaml::IO;
+
+struct AsmEntry {
+  std::string Function;
+  std::vector<std::string> Instructions;
+};
+
+struct AsmInfo {
+  Optional<std::vector<AsmEntry>> Inline;
+  Optional<std::string> Module;
+  std::string Path;
+};
+
+template <>
+  struct MappingTraits<AsmInfo> {
+    static void mapping(IO &io, AsmInfo &info) {
+      io.mapRequired("path", info.Path);
+      io.mapOptional("inline", info.Inline);
+      io.mapOptional("module", info.Module);
+    };
+  };
+
+template <>
+  struct MappingTraits<AsmEntry> {
+    static void mapping(IO &io, AsmEntry &ae) {
+      io.mapRequired("function", ae.Function);
+      io.mapRequired("instructions", ae.Instructions);
+    };
+  };
+
+LLVM_YAML_IS_SEQUENCE_VECTOR(AsmEntry);
+LLVM_YAML_IS_SEQUENCE_VECTOR(AsmInfo);
+LLVM_YAML_IS_SEQUENCE_VECTOR(std::string);
 
 namespace {
 
@@ -31,6 +68,8 @@ Error asmScan(BCDB &DB) {
   DenseSet<decltype(ModuleInfo::ModuleCRC)> ModulesWithModuleAsm;
   DenseSet<decltype(ModuleInfo::ModuleCRC)> ModulesWithInlineAsm;
 
+  std::vector<AsmInfo> Infos;
+
   for (auto MI : DB.getMods()) {
     SMDiagnostic SM;
     LLVMContext C;
@@ -43,14 +82,19 @@ Error asmScan(BCDB &DB) {
       return Err;
 
     auto &Asm = M->getModuleInlineAsm();
+    AsmInfo AI;
+    AI.Path = MI.Filename;
     if (!Asm.empty()) {
-      errs() << MI.Filename << " has module-level inline asm: ||" << Asm
-             << "||\n";
+      AI.Module = Asm;
       ModulesWithModuleAsm.insert(MI.ModuleCRC);
     }
 
+    std::string InstStr;
+    raw_string_ostream OS(InstStr);
     for (auto &F : *M) {
       for (auto &B : F) {
+        AsmEntry AE;
+        AE.Function = F.getName();
         for (auto &I : B) {
           CallSite CS(&I);
           if (!CS)
@@ -58,14 +102,25 @@ Error asmScan(BCDB &DB) {
 
           if (auto *IA = dyn_cast<InlineAsm>(CS.getCalledValue())) {
             // Found inline asm!
-            errs() << MI.Filename << " has inline asm in @" << F.getName()
-                   << ": [[" << I << "]]\n";
+            InstStr.clear();
+            OS << I;
+            AE.Instructions.push_back(InstStr);
             ModulesWithInlineAsm.insert(MI.ModuleCRC);
           }
         }
+        if (!AE.Instructions.empty()) {
+          if (!AI.Inline) AI.Inline = std::vector<AsmEntry>();
+          AI.Inline->push_back(AE);
+        }
+
       }
     }
+    if (AI.Module.hasValue() || AI.Inline.hasValue())
+      Infos.push_back(AI);
   }
+
+  llvm::yaml::Output yout(outs());
+  yout << Infos;
 
   errs() << "\n-------------------\n";
   errs() << "Allexes containing some form of asm:\n";
