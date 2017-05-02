@@ -1,5 +1,6 @@
 #include "subcommand-registry.h"
 
+#include "allvm/AsmInfo.h"
 #include "allvm/BCDB.h"
 
 #include <llvm/ADT/DenseSet.h>
@@ -9,46 +10,9 @@
 #include <llvm/Support/Format.h>
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_ostream.h>
-#include <llvm/Support/YAMLParser.h>
-#include <llvm/Support/YAMLTraits.h>
 
 using namespace allvm;
 using namespace llvm;
-
-using llvm::yaml::MappingTraits;
-using llvm::yaml::IO;
-
-struct AsmEntry {
-  std::string Function;
-  std::vector<std::string> Instructions;
-};
-
-struct AsmInfo {
-  Optional<std::vector<AsmEntry>> Inline;
-  Optional<std::string> Module;
-  std::string Path;
-};
-
-template <>
-  struct MappingTraits<AsmInfo> {
-    static void mapping(IO &io, AsmInfo &info) {
-      io.mapRequired("path", info.Path);
-      io.mapOptional("inline", info.Inline);
-      io.mapOptional("module", info.Module);
-    };
-  };
-
-template <>
-  struct MappingTraits<AsmEntry> {
-    static void mapping(IO &io, AsmEntry &ae) {
-      io.mapRequired("function", ae.Function);
-      io.mapRequired("instructions", ae.Instructions);
-    };
-  };
-
-LLVM_YAML_IS_SEQUENCE_VECTOR(AsmEntry);
-LLVM_YAML_IS_SEQUENCE_VECTOR(AsmInfo);
-LLVM_YAML_IS_SEQUENCE_VECTOR(std::string);
 
 namespace {
 
