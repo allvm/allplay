@@ -51,10 +51,11 @@ Error asmScan(BCDB &DB) {
     auto &Asm = M->getModuleInlineAsm();
     auto mod_table = cpptoml::make_table();
     if (!Asm.empty()) {
-      mod_table->insert("module", Asm);
+      mod_table->insert("module-level", Asm);
       ModulesWithModuleAsm.insert(MI.ModuleCRC);
     }
 
+    auto inline_table = cpptoml::make_table_array();
     for (auto &F : *M) {
       auto inst_table = cpptoml::make_array();
       for (auto &B : F) {
@@ -73,9 +74,15 @@ Error asmScan(BCDB &DB) {
           }
         }
       }
-      if (inst_table->begin() != inst_table->end())
-        mod_table->insert(F.getName(), inst_table);
+      if (inst_table->begin() != inst_table->end()) {
+        auto func_table = cpptoml::make_table();
+        func_table->insert("name", F.getName());
+        func_table->insert("instructions", inst_table);
+        inline_table->push_back(func_table);
+      }
     }
+    if (inline_table->begin()  != inline_table->end())
+      mod_table->insert("inline", inline_table);
     if (!mod_table->empty()) {
       root->insert(MI.Filename, mod_table);
     }
