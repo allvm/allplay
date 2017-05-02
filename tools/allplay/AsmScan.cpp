@@ -36,7 +36,7 @@ Error asmScan(BCDB &DB) {
 
   std::vector<AsmInfo> Infos;
 
-  boost::progress_display mod_progress(DB.getMods().size());
+  boost::progress_display mod_progress(DB.getMods().size(), llvm::errs());
   for (auto MI : DB.getMods()) {
     SMDiagnostic SM;
     LLVMContext C;
