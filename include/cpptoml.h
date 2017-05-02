@@ -2893,7 +2893,7 @@ class toml_writer
                 write(", ");
             endline();
             indent();
-            write("\t");
+            write(indent_);
 
             if (a.get()[i]->is_array())
             {

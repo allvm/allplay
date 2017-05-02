@@ -92,6 +92,7 @@ Error asmScan(BCDB &DB) {
   std::stringstream ss;
   ss << *root;
   outs() << ss.str() << "\n";
+  outs().flush();
 
   errs() << "\n-------------------\n";
   errs() << "Allexes containing some form of asm:\n";
