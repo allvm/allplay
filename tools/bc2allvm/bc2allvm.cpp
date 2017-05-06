@@ -9,6 +9,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "allvm/Allexe.h"
+#include "allvm/DeInlineAsm.h"
 #include "allvm/ExitOnError.h"
 #include "allvm/GitVersion.h"
 #include "allvm/ModuleFlags.h"
@@ -40,6 +41,10 @@ cl::list<std::string>
 cl::opt<std::string> OutputFilename("o", cl::desc("Override output filename"),
                                     cl::value_desc("filename"));
 cl::opt<bool> ForceOutput("f", cl::desc("Replace output allexe if it exists"),
+                          cl::init(false));
+
+cl::opt<bool> PreserveAsm("preserve-asm",
+                          cl::desc("Don't attempt to replace inline ASM code"),
                           cl::init(false));
 
 allvm::ExitOnError ExitOnErr;
@@ -88,7 +93,7 @@ int main(int argc, const char **argv) {
 
     // Use parseIRFile to handle both bitcode and textual IR
     // Create helper lambda for re-use below.
-    auto addModule = [&](StringRef Filename, StringRef Name = "") {
+    auto addModule = [&](StringRef Filename, bool isMain = false) {
       LLVMContext C;
       SMDiagnostic Err;
       SmallString<128> AbsFilename = Filename;
@@ -100,16 +105,37 @@ int main(int argc, const char **argv) {
         Err.print(argv[0], errs());
         exit(1);
       }
+      if (isMain) {
+        // Check that "main.bc" actually has, you know, 'main'!
+        auto main = Module->getFunction("main");
+        if (!main) {
+          errs() << "Failed to find 'main' function in " << Filename << "!\n";
+          exit(1);
+        }
+        if (main->isDeclaration()) {
+          errs() << "'main' must not be a declaration in first module\n";
+          exit(1);
+        }
+      }
       auto Sources = getALLVMSources(Module.get());
       if (Sources.empty())
         setALLVMSource(Module.get(), Filename);
       else
         errs() << "Warning: Module flag '" << MF_ALLVM_SOURCE
                << "' already set, not changing\n";
+
+      if (!PreserveAsm) {
+        ModulePassManager MPM;
+        ModuleAnalysisManager MAM;
+        MPM.addPass<DeInlineAsm>(DeInlineAsm());
+        MPM.run(*Module, MAM);
+      }
+
+      auto Name = isMain ? ALLEXE_MAIN : "";
       ExitOnErr(Output->addModule(std::move(Module), Name));
     };
 
-    addModule(MainFile, ALLEXE_MAIN);
+    addModule(MainFile, true);
     for (const auto &it : InputFiles)
       addModule(it);
 
