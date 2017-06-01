@@ -22,6 +22,9 @@ cl::opt<std::string> InputDirectory(cl::Positional, cl::Required,
 cl::opt<std::string> OutputFilename("o", cl::Required,
                                     cl::desc("name of module to write"),
                                     cl::sub(Combine));
+cl::opt<bool> UseBCScanner("bc-scanner", cl::Optional, cl::init(false),
+                           cl::desc("Use BC scanner instead of allexe scanner"),
+                           cl::sub(Combine));
 
 Error saveCombinedModule(BCDB &DB, StringRef Filename) {
   errs() << "Creating COMBINED 'Module'..\n";
@@ -59,12 +62,16 @@ Error saveCombinedModule(BCDB &DB, StringRef Filename) {
 }
 
 CommandRegistration Unused(&Combine, [](ResourcePaths &RP) -> Error {
-  errs() << "Loading allexe's from " << InputDirectory << "...\n";
-  auto ExpDB = BCDB::loadFromAllexesIn(InputDirectory, RP);
+  errs() << "Scanning " << InputDirectory << "...\n";
+
+  auto ExpDB = UseBCScanner ? BCDB::loadFromBitcodeIn(InputDirectory, RP)
+                            : BCDB::loadFromAllexesIn(InputDirectory, RP);
   if (!ExpDB)
     return ExpDB.takeError();
   auto &DB = *ExpDB;
+
   errs() << "Done! Allexes found: " << DB->allexe_size() << "\n";
+  errs() << "Done! Modules found: " << DB->getMods().size() << "\n";
 
   return saveCombinedModule(*DB, OutputFilename);
 });
