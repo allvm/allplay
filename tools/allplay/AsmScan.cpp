@@ -27,6 +27,9 @@ cl::SubCommand AsmScan("asmscan",
 cl::opt<std::string> InputDirectory(cl::Positional, cl::Required,
                                     cl::desc("<input directory to scan>"),
                                     cl::sub(AsmScan));
+cl::opt<bool> UseBCScanner("bc-scanner", cl::Optional, cl::init(false),
+                           cl::desc("Use BC scanner instead of allexe scanner"),
+                           cl::sub(AsmScan));
 
 Error asmScan(BCDB &DB) {
 
@@ -141,12 +144,16 @@ Error asmScan(BCDB &DB) {
 }
 
 CommandRegistration Unused(&AsmScan, [](ResourcePaths &RP) -> Error {
-  errs() << "Loading allexe's from " << InputDirectory << "...\n";
-  auto ExpDB = BCDB::loadFromAllexesIn(InputDirectory, RP);
+  errs() << "Scanning " << InputDirectory << "...\n";
+
+  auto ExpDB = UseBCScanner ? BCDB::loadFromBitcodeIn(InputDirectory, RP)
+                            : BCDB::loadFromAllexesIn(InputDirectory, RP);
   if (!ExpDB)
     return ExpDB.takeError();
   auto &DB = *ExpDB;
+
   errs() << "Done! Allexes found: " << DB->allexe_size() << "\n";
+  errs() << "Done! Modules found: " << DB->getMods().size() << "\n";
 
   return asmScan(*DB);
 });
