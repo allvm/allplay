@@ -62,9 +62,8 @@ Error findUses(BCDB &DB, llvm::StringRef Symbol) {
       // TODO: Refactor this or something
       assert(!F->hasAddressTaken());
 
-
       auto call_table = cpptoml::make_table();
-      for (auto U: F->users()) {
+      for (auto U : F->users()) {
         auto *I = dyn_cast<Instruction>(U);
         if (!I) {
           errs() << "\tNon-Instruction use found! Use: " << *U << "\n";
@@ -79,10 +78,10 @@ Error findUses(BCDB &DB, llvm::StringRef Symbol) {
           if (!call_table->contains(CFName))
             call_table->insert(CFName, cpptoml::make_array());
           call_table->get_array(CFName)->push_back(toStr(I));
-          //auto *FilenameArg = CS.getArgument(0);
-          //if (auto *C = dyn_cast<Constant>(FilenameArg))
+          // auto *FilenameArg = CS.getArgument(0);
+          // if (auto *C = dyn_cast<Constant>(FilenameArg))
           //  errs() << "\tconst: " << *FilenameArg << "\n";
-          //else
+          // else
           //  errs() << "\t" << *FilenameArg << "\n";
         }
       }
