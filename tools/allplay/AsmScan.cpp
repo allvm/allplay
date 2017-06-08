@@ -10,7 +10,7 @@
 
 #include <llvm/ADT/DenseSet.h>
 #include <llvm/IR/CallSite.h>
-#include <llvm/IR/ModuleSlotTracker.h>
+#include <llvm/IR/InlineAsm.h>
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/Support/Errc.h>
 #include <llvm/Support/Format.h>
@@ -65,7 +65,6 @@ Error asmScan(BCDB &DB) {
     auto inline_table = cpptoml::make_table();
     for (auto &F : *M) {
       auto inst_array = cpptoml::make_array();
-      std::unique_ptr<ModuleSlotTracker> MST;
       for (auto &B : F) {
         for (auto &I : B) {
           CallSite CS(&I);
@@ -74,11 +73,8 @@ Error asmScan(BCDB &DB) {
 
           if (auto *IA = dyn_cast<InlineAsm>(CS.getCalledValue())) {
             // Found inline asm!
-            std::string InstStr;
-            raw_string_ostream OS(InstStr);
-            if (!MST) MST = std::make_unique<ModuleSlotTracker>(M.get());
-            I.print(OS, *MST, true /* isForDebug */);
-            inst_array->push_back(InstStr);
+            inst_array->push_back(IA->getAsmString() + " ---- " + IA->getConstraintString());
+
             ModulesWithInlineAsm.insert(MI.ModuleCRC);
           }
         }
