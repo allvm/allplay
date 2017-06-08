@@ -73,7 +73,8 @@ Error asmScan(BCDB &DB) {
 
           if (auto *IA = dyn_cast<InlineAsm>(CS.getCalledValue())) {
             // Found inline asm!
-            inst_array->push_back(IA->getAsmString() + " ---- " + IA->getConstraintString());
+            inst_array->push_back(IA->getAsmString() + " ---- " +
+                                  IA->getConstraintString());
 
             ModulesWithInlineAsm.insert(MI.ModuleCRC);
           }
