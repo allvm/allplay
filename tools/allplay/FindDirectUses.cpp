@@ -101,8 +101,10 @@ Error findUses(BCDB &DB, llvm::StringRef Symbol) {
   for (auto &A : DB.getAllexes()) {
     bool containsRef = false;
     for (auto &M : A.Modules) {
-      ModuleUseMap[M.ModuleCRC]++;
-      containsRef = true;
+      if (ModulesWithReference.count(M.ModuleCRC)) {
+        ModuleUseMap[M.ModuleCRC]++;
+        containsRef = true;
+      }
     }
 
     if (containsRef) {
