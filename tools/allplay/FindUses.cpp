@@ -1,8 +1,13 @@
 #include "subcommand-registry.h"
 
+// Preserve insert order
+#define CPPTOML_USE_MAP
+#include "cpptoml.h"
+
 #include "allvm/BCDB.h"
 
 #include <llvm/ADT/DenseSet.h>
+#include <llvm/IR/CallSite.h>
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/Support/Errc.h>
 #include <llvm/Support/Format.h>
@@ -23,6 +28,13 @@ cl::opt<std::string> FuncName(cl::Positional, cl::Required,
                               cl::desc("<name of function>"),
                               cl::sub(FindUses));
 
+std::string toStr(const llvm::Value *V) {
+  std::string S;
+  raw_string_ostream OS(S);
+  OS << *V;
+  return S;
+}
+
 Error findUses(BCDB &DB, llvm::StringRef Symbol) {
 
   errs() << "Finding uses of '" << Symbol << "' in BCDB...\n";
@@ -31,6 +43,7 @@ Error findUses(BCDB &DB, llvm::StringRef Symbol) {
 
   DenseSet<decltype(ModuleInfo::ModuleCRC)> ModulesWithReference;
 
+  auto root = cpptoml::make_table();
   for (auto MI : DB.getMods()) {
     SMDiagnostic SM;
     LLVMContext C;
@@ -46,11 +59,43 @@ Error findUses(BCDB &DB, llvm::StringRef Symbol) {
       assert(F->isDeclaration());
       assert(F->hasNUsesOrMore(1));
 
-      errs() << MI.Filename << "\n";
+      // TODO: Refactor this or something
+      assert(!F->hasAddressTaken());
+
+      auto call_table = cpptoml::make_table();
+      for (auto U : F->users()) {
+        auto *I = dyn_cast<Instruction>(U);
+        if (!I) {
+          errs() << "\tNon-Instruction use found! Use: " << *U << "\n";
+        } else {
+          CallSite CS(I);
+          assert(CS && "Non-callsite instruction?");
+
+          // TODO: Slice?
+          auto *ContainingF = I->getFunction();
+          // call_table->insert(ContainingF->getName(), toStr(I));
+          auto CFName = ContainingF->getName();
+          if (!call_table->contains(CFName))
+            call_table->insert(CFName, cpptoml::make_array());
+          call_table->get_array(CFName)->push_back(toStr(I));
+          // auto *FilenameArg = CS.getArgument(0);
+          // if (auto *C = dyn_cast<Constant>(FilenameArg))
+          //  errs() << "\tconst: " << *FilenameArg << "\n";
+          // else
+          //  errs() << "\t" << *FilenameArg << "\n";
+        }
+      }
 
       ModulesWithReference.insert(MI.ModuleCRC);
+      root->insert(MI.Filename, call_table);
     }
   }
+
+  errs() << "\n-------------------\n";
+  std::stringstream ss;
+  ss << *root;
+  outs() << ss.str() << "\n";
+  outs().flush();
 
   errs() << "\n-------------------\n";
   errs() << "Allexes containing matched module:\n";
