@@ -6,8 +6,8 @@
 
 #include "allvm/BCDB.h"
 
-#include <llvm/ADT/DenseSet.h>
 #include <llvm/ADT/DenseMap.h>
+#include <llvm/ADT/DenseSet.h>
 #include <llvm/IR/CallSite.h>
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/Support/Errc.h>
@@ -49,7 +49,7 @@ Error findUses(BCDB &DB, llvm::StringRef Symbol) {
   errs() << "Err, looking for users of function with that name\n";
 
   DenseSet<CRC_t> ModulesWithReference;
-  DenseMap<CRC_t,StringRef> ModNameMap;
+  DenseMap<CRC_t, StringRef> ModNameMap;
 
   auto root = cpptoml::make_table();
   for (auto &MI : DB.getMods()) {
@@ -99,11 +99,11 @@ Error findUses(BCDB &DB, llvm::StringRef Symbol) {
   errs() << "Allexes containing matched module:\n";
   size_t MatchingAllexes = 0;
   for (auto &A : DB.getAllexes()) {
-      bool containsRef = false;
-      for (auto &M: A.Modules) {
-        ModuleUseMap[M.ModuleCRC]++;
-        containsRef = true;
-      }
+    bool containsRef = false;
+    for (auto &M : A.Modules) {
+      ModuleUseMap[M.ModuleCRC]++;
+      containsRef = true;
+    }
 
     if (containsRef) {
       ++MatchingAllexes;
@@ -121,13 +121,14 @@ Error findUses(BCDB &DB, llvm::StringRef Symbol) {
   // Print modules, sorted by allexe count
   errs() << "\n-------------------\n";
   errs() << "Modules w/uses, sorted by # containing allexes:\n";
-  auto keys_sorted = ModuleUseMap | ranges::to_vector | ranges::action::sort(std::greater<CRC_t>(),[](auto &KV) { return KV.second; });
+  auto keys_sorted = ModuleUseMap | ranges::to_vector |
+                     ranges::action::sort(std::greater<CRC_t>(),
+                                          [](auto &KV) { return KV.second; });
 
-  for (auto &KV: keys_sorted) {
+  for (auto &KV : keys_sorted) {
     auto ModName = ModNameMap[KV.first];
     errs() << KV.second << " " << ModName << "\n";
   }
-
 
   errs() << "\n-------------------\n";
   // little helper
