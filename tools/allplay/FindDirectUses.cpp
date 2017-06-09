@@ -7,12 +7,15 @@
 #include "allvm/BCDB.h"
 
 #include <llvm/ADT/DenseSet.h>
+#include <llvm/ADT/DenseMap.h>
 #include <llvm/IR/CallSite.h>
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/Support/Errc.h>
 #include <llvm/Support/Format.h>
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_ostream.h>
+
+#include <range/v3/all.hpp>
 
 using namespace allvm;
 using namespace llvm;
@@ -37,16 +40,19 @@ std::string toStr(const llvm::Value *V) {
   return S;
 }
 
+using CRC_t = decltype(ModuleInfo::ModuleCRC);
+
 Error findUses(BCDB &DB, llvm::StringRef Symbol) {
 
   errs() << "Finding uses of '" << Symbol << "' in BCDB...\n";
 
   errs() << "Err, looking for users of function with that name\n";
 
-  DenseSet<decltype(ModuleInfo::ModuleCRC)> ModulesWithReference;
+  DenseSet<CRC_t> ModulesWithReference;
+  DenseMap<CRC_t,StringRef> ModNameMap;
 
   auto root = cpptoml::make_table();
-  for (auto MI : DB.getMods()) {
+  for (auto &MI : DB.getMods()) {
     SMDiagnostic SM;
     LLVMContext C;
     auto M = llvm::parseIRFile(MI.Filename, SM, C);
@@ -56,6 +62,8 @@ Error findUses(BCDB &DB, llvm::StringRef Symbol) {
 
     if (auto Err = M->materializeAll())
       return Err;
+
+    ModNameMap[MI.ModuleCRC] = MI.Filename;
 
     if (auto *F = M->getFunction(Symbol)) {
       assert(F->isDeclaration());
@@ -85,20 +93,17 @@ Error findUses(BCDB &DB, llvm::StringRef Symbol) {
     }
   }
 
-  errs() << "\n-------------------\n";
-  std::stringstream ss;
-  ss << *root;
-  outs() << ss.str() << "\n";
-  outs().flush();
+  DenseMap<decltype(ModuleInfo::ModuleCRC), uint64_t> ModuleUseMap;
 
   errs() << "\n-------------------\n";
   errs() << "Allexes containing matched module:\n";
   size_t MatchingAllexes = 0;
   for (auto &A : DB.getAllexes()) {
-    auto containsRef = std::any_of(
-        A.Modules.begin(), A.Modules.end(), [&ModulesWithReference](auto &M) {
-          return ModulesWithReference.count(M.ModuleCRC);
-        });
+      bool containsRef = false;
+      for (auto &M: A.Modules) {
+        ModuleUseMap[M.ModuleCRC]++;
+        containsRef = true;
+      }
 
     if (containsRef) {
       ++MatchingAllexes;
@@ -106,6 +111,25 @@ Error findUses(BCDB &DB, llvm::StringRef Symbol) {
     }
   }
 
+  // Print modules and dlopen uses...
+  errs() << "\n-------------------\n";
+  std::stringstream ss;
+  ss << *root;
+  outs() << ss.str() << "\n";
+  outs().flush();
+
+  // Print modules, sorted by allexe count
+  errs() << "\n-------------------\n";
+  errs() << "Modules w/uses, sorted by # containing allexes:\n";
+  auto keys_sorted = ModuleUseMap | ranges::to_vector | ranges::action::sort(std::greater<CRC_t>(),[](auto &KV) { return KV.second; });
+
+  for (auto &KV: keys_sorted) {
+    auto ModName = ModNameMap[KV.first];
+    errs() << KV.second << " " << ModName << "\n";
+  }
+
+
+  errs() << "\n-------------------\n";
   // little helper
   auto printPercent = [](auto A, auto B) {
     assert(A <= B);
