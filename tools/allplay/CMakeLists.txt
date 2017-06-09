@@ -21,6 +21,7 @@ add_llvm_tool(allplay
   Cypher.cpp
   Decompose.cpp
   DecomposeAllexes.cpp
+  FindDirectUses.cpp
   FindUses.cpp
   FunctionHash.cpp
   Graph.cpp
