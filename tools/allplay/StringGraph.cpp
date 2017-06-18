@@ -4,6 +4,7 @@
 #include <llvm/Support/Errc.h>
 #include <llvm/Support/Error.h>
 #include <llvm/Support/FileSystem.h>
+#include <llvm/Support/FormatVariadic.h>
 #include <llvm/Support/ToolOutputFile.h>
 #include <llvm/Support/raw_ostream.h>
 
@@ -45,18 +46,14 @@ Error StringGraph::writeGraph(StringRef F) {
 
   // }
   RANGES_FOR(auto N, Nodes | ranges::view::keys) {
-    OS << "Node" << getNodeIndex(N) << " [" << getNodeAttrs(N) << "];\n";
+    OS << formatv("Node {0} [{1}];\n", getNodeIndex(N), getNodeAttrs(N));
   }
 
   RANGES_FOR(auto E, Edges) {
     VertexID Src, Dst;
     llvm::StringRef Attrs;
     std::tie(Src, Dst, Attrs) = E;
-    OS << "Node" << Src << " -> "
-       << "Node" << Dst;
-    if (!Attrs.empty())
-      OS << " [" << Attrs << "]";
-    OS << ";\n";
+    OS << formatv("Node {0} -> Node {1} [{2}];\n", Src, Dst, Attrs);
   }
 
   OS << "}\n";
