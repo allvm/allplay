@@ -319,7 +319,8 @@ Error functionHash(BCDB &DB) {
         auto S1 = P.first, S2 = P.second;
         assert(!S1.empty() && !S2.empty());
 
-        Graph.addEdge(S1, S2);
+        auto Sharing = Twine(Value).str();
+        Graph.addEdge(S1, S2, {{"weight",Sharing},{"label",Sharing}});
       }
     }
 
