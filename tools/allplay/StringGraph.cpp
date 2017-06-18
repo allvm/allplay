@@ -51,11 +51,11 @@ Error StringGraph::writeGraph(StringRef F) {
   return Error::success();
 }
 
-void StringGraph::addVertex(llvm::StringRef S, ArrayRef<StringAttr> attrs) {
+std::string StringGraph::stringify(ArrayRef<StringAttr> attrs) {
   SmallVector<std::string, 4> AttrStrings;
 
   for (auto &A : attrs)
     AttrStrings.push_back(formatv("{0}=\"{1}\"", A.first, A.second));
 
-  return addVertex(S, llvm::join(AttrStrings.begin(), AttrStrings.end(), ";"));
+  return llvm::join(AttrStrings.begin(), AttrStrings.end(), ";");
 }
