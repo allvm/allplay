@@ -59,11 +59,15 @@ cl::opt<bool> UseLogSize(
     "use-log-size", cl::Optional, cl::init(true),
     cl::desc("Size graph nodes by (2*log(count))^2 instead of linear count"),
     cl::sub(FunctionHashes));
-cl::opt<GraphKind> EmitGraphKind("graph-kind", cl::desc("Choose graph kind"),
-    cl::init(GraphKind::HashGraph),
-    cl::values(clEnumValN(GraphKind::HashGraph, "hashgraph", "Hashes are nodes, like graphs in proposal"),
-      clEnumValN(GraphKind::HashGraphMerged, "hashgraph-merged", "hashgraph but merge nodes with same neighbors"),
-      clEnumValN(GraphKind::Pairwise, "pairwise", "no hash nodes, edges are number of shared instructions")));
+cl::opt<GraphKind> EmitGraphKind(
+    "graph-kind", cl::desc("Choose graph kind"), cl::init(GraphKind::HashGraph),
+    cl::values(
+        clEnumValN(GraphKind::HashGraph, "hashgraph",
+                   "Hashes are nodes, like graphs in proposal"),
+        clEnumValN(GraphKind::HashGraphMerged, "hashgraph-merged",
+                   "hashgraph but merge nodes with same neighbors"),
+        clEnumValN(GraphKind::Pairwise, "pairwise",
+                   "no hash nodes, edges are number of shared instructions")));
 
 cl::opt<std::string> WriteCSV("write-csv", cl::Optional, cl::init(""),
                               cl::sub(FunctionHashes));
