@@ -14,7 +14,7 @@ namespace allvm {
 
 class StringGraph {
   using VertexID = size_t;
-  using Edge = std::pair<VertexID, VertexID>;
+  using Edge = std::tuple<VertexID, VertexID, llvm::StringRef>;
   using NodeInfo = std::pair<llvm::StringRef, llvm::StringRef>;
   std::vector<Edge> Edges;
   llvm::StringMap<VertexID> StringIndexMap;
@@ -47,11 +47,11 @@ public:
     return Nodes[getNodeIndex(N)].second;
   }
 
-  void addEdge(llvm::StringRef A, llvm::StringRef B) {
+  void addEdge(llvm::StringRef A, llvm::StringRef B,const llvm::Twine &Attrs = "") {
     auto V1 = getNodeIndex(A);
     auto V2 = getNodeIndex(B);
 
-    Edges.push_back({V1, V2});
+    Edges.push_back(Edge{V1, V2, Saver.save(Attrs)});
   }
 
   auto &nodes() const { return Nodes; }

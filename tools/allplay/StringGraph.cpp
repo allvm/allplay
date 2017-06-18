@@ -49,8 +49,14 @@ Error StringGraph::writeGraph(StringRef F) {
   }
 
   RANGES_FOR(auto E, Edges) {
-    OS << "Node" << E.first << " -> "
-       << "Node" << E.second << ";\n";
+    VertexID Src, Dst;
+    llvm::StringRef Attrs;
+    std::tie(Src, Dst, Attrs) = E;
+    OS << "Node" << Src << " -> "
+       << "Node" << Dst;
+    if (!Attrs.empty())
+      OS << " [" << Attrs << "]";
+    OS << ";\n";
   }
 
   OS << "}\n";
