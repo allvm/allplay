@@ -34,14 +34,14 @@ Error StringGraph::writeGraph(StringRef F) {
   OS << "node [shape=record];\n";
 
   RANGES_FOR(auto N, Nodes | ranges::view::keys) {
-    OS << formatv("Node {0} [{1}];\n", getNodeIndex(N), getNodeAttrs(N));
+    OS << formatv("Node{0} [{1}];\n", getNodeIndex(N), getNodeAttrs(N));
   }
 
   RANGES_FOR(auto E, Edges) {
     VertexID Src, Dst;
     llvm::StringRef Attrs;
     std::tie(Src, Dst, Attrs) = E;
-    OS << formatv("Node {0} -> Node {1} [{2}];\n", Src, Dst, Attrs);
+    OS << formatv("Node{0} -> Node{1} [{2}];\n", Src, Dst, Attrs);
   }
 
   OS << "}\n";
