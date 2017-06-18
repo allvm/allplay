@@ -320,7 +320,7 @@ Error functionHash(BCDB &DB) {
         assert(!S1.empty() && !S2.empty());
 
         auto Sharing = Twine(Value).str();
-        Graph.addEdge(S1, S2, {{"weight",Sharing},{"label",Sharing}});
+        Graph.addEdge(S1, S2, {{"weight",Sharing},{"label",Sharing},{"dir","none"}});
       }
     }
 
