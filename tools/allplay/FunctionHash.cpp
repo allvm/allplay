@@ -57,10 +57,10 @@ cl::opt<bool> UseLogSize(
     "use-log-size", cl::Optional, cl::init(true),
     cl::desc("Size graph nodes by (2*log(count))^2 instead of linear count"),
     cl::sub(FunctionHashes));
-cl::opt<bool> MergeHashes(
-    "merge-hashes", cl::Optional, cl::init(true),
-    cl::desc("Merge hash nodes that have identical neighbors"),
-    cl::sub(FunctionHashes));
+cl::opt<bool>
+    MergeHashes("merge-hashes", cl::Optional, cl::init(true),
+                cl::desc("Merge hash nodes that have identical neighbors"),
+                cl::sub(FunctionHashes));
 
 cl::opt<std::string> WriteCSV("write-csv", cl::Optional, cl::init(""),
                               cl::sub(FunctionHashes));
@@ -278,10 +278,10 @@ Error functionHash(BCDB &DB) {
         auto Insts = instCount(M);
 
         Graph.addVertex(Source,
-            {{"label", getModLabel(Source)},
-            {"style", "filled"},
-            {"fontsize", compute_size(Insts)},
-            {"fillcolor", "cyan"}});
+                        {{"label", getModLabel(Source)},
+                         {"style", "filled"},
+                         {"fontsize", compute_size(Insts)},
+                         {"fillcolor", "cyan"}});
       }
 
       StringMap<size_t> SharingMap;
@@ -290,17 +290,18 @@ Error functionHash(BCDB &DB) {
       RANGES_FOR(auto H, Functions | group_by_hash()) {
         auto I = H.begin();
         auto E = H.end();
-        for ( ; I != E; ++I) {
+        for (; I != E; ++I) {
           for (auto J = std::next(I); J != E; ++J) {
             auto S1 = I->Source;
             auto S2 = J->Source;
 
             // Skip self-sharing?
-            if (S1 == S2) continue;
+            if (S1 == S2)
+              continue;
 
             // XXX :(
             if (S1 > S2)
-              std::swap(S1,S2);
+              std::swap(S1, S2);
             auto Key = S1 + DELIM + S2;
 
             assert(I->Insts == J->Insts);
@@ -320,7 +321,8 @@ Error functionHash(BCDB &DB) {
         assert(!S1.empty() && !S2.empty());
 
         auto Sharing = Twine(Value).str();
-        Graph.addEdge(S1, S2, {{"weight",Sharing},{"label",Sharing},{"dir","none"}});
+        Graph.addEdge(
+            S1, S2, {{"weight", Sharing}, {"label", Sharing}, {"dir", "none"}});
       }
     }
 
