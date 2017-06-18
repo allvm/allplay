@@ -317,32 +317,10 @@ Error functionHash(BCDB &DB) {
 
         auto P = StringRef(Key).split(DELIM);
         auto S1 = P.first, S2 = P.second;
-        asssert(!S1.empty() && !S2.empty());
+        assert(!S1.empty() && !S2.empty());
 
         Graph.addEdge(S1, S2);
       }
-
-      // DenseMap<IndexPair,size_t> SharingMap;
-      // for (size_t i = 0; i < DB.getMods().size(); ++i) {
-      //   for (size_t j = i + 1; j < DB.getMods().size(); ++j) {
-      //     auto &A = DB.getMods()[i];
-      //     auto &B = DB.getMods()[j];
-
-      //     IndexPair IP{i, j};
-      //     assert(!SharingMap.count(IP));
-      //     SharingMap[IP] = 1;
-      //   }
-      // }
-
-
-      // Goal:
-      // nodes = sources (size ~~ inst count?)
-      // edges
-
-      // auto SharedFunctions = Functions | group_by_hash() |
-      //                        filter_small_ranges(1) |
-      //                        filter_by_inst_count(GraphThreshold) |
-
     }
 
     return Graph.writeGraph(WriteGraph);
