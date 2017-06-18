@@ -57,6 +57,10 @@ cl::opt<bool> UseLogSize(
     "use-log-size", cl::Optional, cl::init(true),
     cl::desc("Size graph nodes by (2*log(count))^2 instead of linear count"),
     cl::sub(FunctionHashes));
+cl::opt<bool> MergeHashes(
+    "merge-hashes", cl::Optional, cl::init(true),
+    cl::desc("Merge hash nodes that have identical neighbors"),
+    cl::sub(FunctionHashes));
 
 cl::opt<std::string> WriteCSV("write-csv", cl::Optional, cl::init(""),
                               cl::sub(FunctionHashes));
@@ -220,47 +224,125 @@ Error functionHash(BCDB &DB) {
 
     StringGraph Graph;
 
-    auto SharedFunctions = Functions | group_by_hash() |
-                           filter_small_ranges(1) |
-                           filter_by_inst_count(GraphThreshold) |
-                           ranges::view::join | ranges::to_vector;
-
-    auto ModHashPairs =
-        SharedFunctions | ranges::view::transform([](const auto &FD) {
-          return std::pair<StringRef, FunctionHash>{FD.Source, FD.H};
-        }) |
-        to_vec_sort_uniq();
-
-    auto ModGroups =
-        SharedFunctions | ranges::to_vector |
-        ranges::action::sort(std::less<StringRef>(), &FuncDesc::Source);
-    auto HashGroups =
-        SharedFunctions | ranges::to_vector |
-        ranges::action::sort(std::less<FunctionHash>(), &FuncDesc::H);
-
     auto getModLabel = [](StringRef S) { return S.rsplit('/').second; };
-    RANGES_FOR(auto M, ModGroups | group_by_module()) {
-      auto Count = static_cast<size_t>(ranges::distance(M));
-      auto Source = M.begin()->Source;
-      Graph.addVertex(Source,
-                      {{"label", getModLabel(Source)},
-                       {"style", "filled"},
-                       {"fontsize", compute_size(Count)},
-                       {"fillcolor", "cyan"}});
-    }
+    if (!MergeHashes) {
+      auto SharedFunctions = Functions | group_by_hash() |
+                             filter_small_ranges(1) |
+                             filter_by_inst_count(GraphThreshold) |
+                             ranges::view::join | ranges::to_vector;
 
-    RANGES_FOR(auto H, HashGroups | group_by_hash()) {
-      auto Count = static_cast<size_t>(ranges::distance(H));
-      auto CountStr = Twine(Count).str();
-      auto HStr = Twine(H.begin()->H).str();
-      Graph.addVertex(HStr,
-                      {{"label", CountStr},
-                       {"fontsize", compute_size(Count)},
-                       {"shape", "circle"}});
-    }
+      auto ModHashPairs =
+          SharedFunctions | ranges::view::transform([](const auto &FD) {
+            return std::pair<StringRef, FunctionHash>{FD.Source, FD.H};
+          }) |
+          to_vec_sort_uniq();
 
-    RANGES_FOR(auto &MH, ModHashPairs) {
-      Graph.addEdge(MH.first, Twine(MH.second).str());
+      auto ModGroups =
+          SharedFunctions | ranges::to_vector |
+          ranges::action::sort(std::less<StringRef>(), &FuncDesc::Source);
+      auto HashGroups =
+          SharedFunctions | ranges::to_vector |
+          ranges::action::sort(std::less<FunctionHash>(), &FuncDesc::H);
+
+      RANGES_FOR(auto M, ModGroups | group_by_module()) {
+        auto Count = static_cast<size_t>(ranges::distance(M));
+        auto Source = M.begin()->Source;
+        Graph.addVertex(Source,
+                        {{"label", getModLabel(Source)},
+                         {"style", "filled"},
+                         {"fontsize", compute_size(Count)},
+                         {"fillcolor", "cyan"}});
+      }
+
+      RANGES_FOR(auto H, HashGroups | group_by_hash()) {
+        auto Count = static_cast<size_t>(ranges::distance(H));
+        auto CountStr = Twine(Count).str();
+        auto HStr = Twine(H.begin()->H).str();
+        Graph.addVertex(HStr,
+                        {{"label", CountStr},
+                         {"fontsize", compute_size(Count)},
+                         {"shape", "circle"}});
+      }
+
+      RANGES_FOR(auto &MH, ModHashPairs) {
+        Graph.addEdge(MH.first, Twine(MH.second).str());
+      }
+    } else {
+      // MergeHashes
+
+      // (basically for mod in DB.getMods()...)
+      RANGES_FOR(auto M, Functions | group_by_module()) {
+        auto Source = M.begin()->Source;
+
+        // Total insts
+        auto Insts = instCount(M);
+
+        Graph.addVertex(Source,
+            {{"label", getModLabel(Source)},
+            {"style", "filled"},
+            {"fontsize", compute_size(Insts)},
+            {"fillcolor", "cyan"}});
+      }
+
+      StringMap<size_t> SharingMap;
+
+      auto DELIM = "!|!";
+      RANGES_FOR(auto H, Functions | group_by_hash()) {
+        auto I = H.begin();
+        auto E = H.end();
+        for ( ; I != E; ++I) {
+          for (auto J = std::next(I); J != E; ++J) {
+            auto S1 = I->Source;
+            auto S2 = J->Source;
+
+            // Skip self-sharing?
+            if (S1 == S2) continue;
+
+            // XXX :(
+            if (S1 > S2)
+              std::swap(S1,S2);
+            auto Key = S1 + DELIM + S2;
+
+            assert(I->Insts == J->Insts);
+            SharingMap[Key] += I->Insts;
+          }
+        }
+      }
+
+      for (auto &KV : SharingMap) {
+        auto Key = KV.getKey();
+        auto Value = KV.getValue();
+
+        assert(StringRef(Key).contains(DELIM));
+
+        auto P = StringRef(Key).split(DELIM);
+        auto S1 = P.first, S2 = P.second;
+        asssert(!S1.empty() && !S2.empty());
+
+        Graph.addEdge(S1, S2);
+      }
+
+      // DenseMap<IndexPair,size_t> SharingMap;
+      // for (size_t i = 0; i < DB.getMods().size(); ++i) {
+      //   for (size_t j = i + 1; j < DB.getMods().size(); ++j) {
+      //     auto &A = DB.getMods()[i];
+      //     auto &B = DB.getMods()[j];
+
+      //     IndexPair IP{i, j};
+      //     assert(!SharingMap.count(IP));
+      //     SharingMap[IP] = 1;
+      //   }
+      // }
+
+
+      // Goal:
+      // nodes = sources (size ~~ inst count?)
+      // edges
+
+      // auto SharedFunctions = Functions | group_by_hash() |
+      //                        filter_small_ranges(1) |
+      //                        filter_by_inst_count(GraphThreshold) |
+
     }
 
     return Graph.writeGraph(WriteGraph);
