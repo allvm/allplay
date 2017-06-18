@@ -31,6 +31,8 @@ using namespace allvm;
 
 namespace {
 
+enum class GraphKind { HashGraph, HashGraphMerged, Pairwise };
+
 cl::SubCommand FunctionHashes("functionhashes",
                               "Analyze basic hashes of functions");
 cl::opt<std::string> InputDirectory(cl::Positional, cl::Required,
@@ -57,10 +59,11 @@ cl::opt<bool> UseLogSize(
     "use-log-size", cl::Optional, cl::init(true),
     cl::desc("Size graph nodes by (2*log(count))^2 instead of linear count"),
     cl::sub(FunctionHashes));
-cl::opt<bool>
-    MergeHashes("merge-hashes", cl::Optional, cl::init(true),
-                cl::desc("Merge hash nodes that have identical neighbors"),
-                cl::sub(FunctionHashes));
+cl::opt<GraphKind> EmitGraphKind("graph-kind", cl::desc("Choose graph kind"),
+    cl::init(GraphKind::HashGraph),
+    cl::values(clEnumValN(GraphKind::HashGraph, "hashgraph", "Hashes are nodes, like graphs in proposal"),
+      clEnumValN(GraphKind::HashGraphMerged, "hashgraph-merged", "hashgraph but merge nodes with same neighbors"),
+      clEnumValN(GraphKind::Pairwise, "pairwise", "no hash nodes, edges are number of shared instructions")));
 
 cl::opt<std::string> WriteCSV("write-csv", cl::Optional, cl::init(""),
                               cl::sub(FunctionHashes));
@@ -225,7 +228,9 @@ Error functionHash(BCDB &DB) {
     StringGraph Graph;
 
     auto getModLabel = [](StringRef S) { return S.rsplit('/').second; };
-    if (!MergeHashes) {
+    switch (EmitGraphKind) {
+    case GraphKind::HashGraph:
+    case GraphKind::HashGraphMerged: {
       auto SharedFunctions = Functions | group_by_hash() |
                              filter_small_ranges(1) |
                              filter_by_inst_count(GraphThreshold) |
@@ -267,7 +272,8 @@ Error functionHash(BCDB &DB) {
       RANGES_FOR(auto &MH, ModHashPairs) {
         Graph.addEdge(MH.first, Twine(MH.second).str());
       }
-    } else {
+    }
+    case GraphKind::Pairwise: {
       // MergeHashes
 
       // (basically for mod in DB.getMods()...)
@@ -325,6 +331,7 @@ Error functionHash(BCDB &DB) {
             S1, S2, {{"weight", Sharing}, {"label", Sharing}, {"dir", "none"}});
       }
     }
+    };
 
     return Graph.writeGraph(WriteGraph);
   }
