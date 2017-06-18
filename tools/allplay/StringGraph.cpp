@@ -33,18 +33,6 @@ Error StringGraph::writeGraph(StringRef F) {
   OS << "compound=true;\n";
   OS << "node [shape=record];\n";
 
-  // auto Grouped = Nodes | ranges::view::group_by(GrpBy);
-
-  // size_t GIdx = 0;
-  // RANGES_FOR(auto Grp, Grouped) {
-  //   if (useClusters) {
-  // if (UseClusters) {
-  //   OS << "subgraph cluster_" << GIdx++ << " {\n";
-  //   OS << "labelloc = \"b\";\n";
-  //   OS << "label = \"" << getGroup(*Grp.begin()) << "\";\n";
-  //   }
-
-  // }
   RANGES_FOR(auto N, Nodes | ranges::view::keys) {
     OS << formatv("Node {0} [{1}];\n", getNodeIndex(N), getNodeAttrs(N));
   }
@@ -67,8 +55,7 @@ void StringGraph::addVertex(llvm::StringRef S, ArrayRef<StringAttr> attrs) {
   SmallVector<std::string, 4> AttrStrings;
 
   for (auto &A : attrs)
-    AttrStrings.push_back(
-        (StringRef(A.first) + "=\"" + StringRef(A.second) + "\"").str());
+    AttrStrings.push_back(formatv("{0}=\"{1}\"", A.first, A.second));
 
   return addVertex(S, llvm::join(AttrStrings.begin(), AttrStrings.end(), ";"));
 }
