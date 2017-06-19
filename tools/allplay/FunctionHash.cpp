@@ -70,6 +70,9 @@ cl::opt<GraphKind> EmitGraphKind(
         clEnumValN(GraphKind::Pairwise, "pairwise",
                    "no hash nodes, edges are number of shared instructions")),
     cl::sub(FunctionHashes));
+cl::opt<bool> ShowUnshared("show-unshared", cl::Optional, cl::init(false),
+    cl::desc("Show hashnodes only used in single Source (hashgraph-merged only)"),
+    cl::sub(FunctionHashes));
 
 cl::opt<std::string> WriteCSV("write-csv", cl::Optional, cl::init(""),
                               cl::sub(FunctionHashes));
@@ -301,6 +304,10 @@ Error functionHash(BCDB &DB) {
                       return std::make_pair(Info, Sources);
                     }) |
                     ranges::to_vector;
+
+      if (!ShowUnshared)
+        Groups |= ranges::action::remove_if([](const auto &A) {
+            return A.second.size() <= 1; });
 
       auto ModGroups =
           SharedFunctions | ranges::to_vector |
