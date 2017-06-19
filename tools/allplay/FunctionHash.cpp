@@ -309,8 +309,9 @@ Error functionHash(BCDB &DB) {
           SharedFunctions | group_by_hash() |
           ranges::view::transform([](const auto HG) {
             // {hash, insts}, sources
-            auto Info = std::make_pair(HG.begin()->H,
-                                       instCount(HG) / ranges::distance(HG));
+            auto Info = std::make_pair(
+                HG.begin()->H,
+                instCount(HG) / static_cast<size_t>(ranges::distance(HG)));
             auto Sources = HG | ranges::view::transform(
                                     [](const auto &FD) { return FD.Source; }) |
                            to_vec_sort_uniq();
