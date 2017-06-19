@@ -33,6 +33,7 @@ using namespace allvm;
 namespace {
 
 enum class GraphKind { HashGraph, HashGraphMerged, Pairwise };
+enum class SizeKind { Linear, LogSquared, LogLog };
 
 cl::SubCommand FunctionHashes("functionhashes",
                               "Analyze basic hashes of functions");
@@ -56,10 +57,6 @@ cl::opt<unsigned>
     MinFontSize("min-font-size", cl::Optional, cl::init(12),
                 cl::desc("Minimum (starting) font size for nodes"),
                 cl::sub(FunctionHashes));
-cl::opt<bool> UseLogSize(
-    "use-log-size", cl::Optional, cl::init(true),
-    cl::desc("Size graph nodes by (2*log(count))^2 instead of linear count"),
-    cl::sub(FunctionHashes));
 cl::opt<GraphKind> EmitGraphKind(
     "graph-kind", cl::desc("Choose graph kind"), cl::init(GraphKind::HashGraph),
     cl::values(
@@ -69,6 +66,12 @@ cl::opt<GraphKind> EmitGraphKind(
                    "hashgraph but merge nodes with same neighbors"),
         clEnumValN(GraphKind::Pairwise, "pairwise",
                    "no hash nodes, edges are number of shared instructions")),
+    cl::sub(FunctionHashes));
+cl::opt<SizeKind> Sizing("sizing", cl::desc("Choose node sizing kind"), cl::init(SizeKind::LogSquared), cl::values(
+      clEnumValN(SizeKind::Linear, "linear", "N"),
+      clEnumValN(SizeKind::LogSquared, "log-squared", "(2*log(N))^2"),
+      clEnumValN(SizeKind::LogLog, "log-log", "log(log(N))")
+      ),
     cl::sub(FunctionHashes));
 cl::opt<bool> ShowUnshared(
     "show-unshared", cl::Optional, cl::init(false),
@@ -154,11 +157,17 @@ auto to_vec_sort_uniq() {
 }
 
 auto size_addend(size_t count) {
-  if (!UseLogSize)
-    return count;
-  // log^2(x), adjusted
-  auto l = 2 * std::log(count);
-  return static_cast<size_t>(l * l);
+  switch (Sizing) {
+    case SizeKind::Linear:
+      return count;
+    case SizeKind::LogSquared: {
+      // log^2(x), adjusted
+      auto l = 2 * std::log(count);
+      return static_cast<size_t>(l * l);
+                               }
+    case SizeKind::LogLog:
+      return static_cast<size_t>(std::log(std::log(count)));
+  }
 }
 
 auto compute_size(size_t count) {
