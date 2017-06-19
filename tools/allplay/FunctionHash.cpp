@@ -290,12 +290,17 @@ Error functionHash(BCDB &DB) {
                              filter_by_inst_count(GraphThreshold) |
                              ranges::view::join | ranges::to_vector;
 
-      auto Groups = SharedFunctions | group_by_hash() | ranges::view::transform([](const auto HG) {
-          // {hash, insts}, sources
-          auto Info = std::make_pair(HG.begin()->H, instCount(HG));
-          auto Sources = HG | ranges::view::transform([](const auto &FD) { return FD.Source; }) | to_vec_sort_uniq();
-          return std::make_pair(Info, Sources);
-        }) | ranges::to_vector;
+      auto Groups = SharedFunctions | group_by_hash() |
+                    ranges::view::transform([](const auto HG) {
+                      // {hash, insts}, sources
+                      auto Info = std::make_pair(HG.begin()->H, instCount(HG));
+                      auto Sources =
+                          HG | ranges::view::transform(
+                                   [](const auto &FD) { return FD.Source; }) |
+                          to_vec_sort_uniq();
+                      return std::make_pair(Info, Sources);
+                    }) |
+                    ranges::to_vector;
 
       auto ModGroups =
           SharedFunctions | ranges::to_vector |
@@ -311,23 +316,27 @@ Error functionHash(BCDB &DB) {
                          {"fillcolor", "cyan"}});
       }
 
-      auto NGroups = Groups | ranges::to_vector |
-        ranges::action::sort(std::less<std::vector<std::string>>(), &decltype(Groups)::value_type::second);
+      auto NGroups =
+          Groups | ranges::to_vector |
+          ranges::action::sort(std::less<std::vector<std::string>>(),
+                               &decltype(Groups)::value_type::second);
 
       size_t MergedIdx = 0;
       RANGES_FOR(auto A, NGroups | group_by_second()) {
         // Vertex for each group of hashes that have the same neighbors
 
-        auto Insts = ranges::accumulate(A | ranges::view::keys | ranges::view::values, size_t{0});
+        auto Insts = ranges::accumulate(
+            A | ranges::view::keys | ranges::view::values, size_t{0});
         std::string NodeID = formatv("Merged{0}", MergedIdx++);
-        std::string VtxL = formatv("{0} Fns\\n{1} Insts", ranges::distance(A), Insts);
+        std::string VtxL =
+            formatv("{0} Fns\\n{1} Insts", ranges::distance(A), Insts);
         Graph.addVertex(NodeID,
-            {{"label", VtxL},
-            {"fontsize", compute_size(Insts)},
-            {"shape", "record"}});
+                        {{"label", VtxL},
+                         {"fontsize", compute_size(Insts)},
+                         {"shape", "record"}});
 
         auto &Sources = A.begin()->second;
-        for (auto S: Sources) {
+        for (auto S : Sources) {
           Graph.addEdge(S, NodeID);
         }
       }
