@@ -308,7 +308,7 @@ Error functionHash(BCDB &DB) {
       auto Groups = SharedFunctions | group_by_hash() |
                     ranges::view::transform([](const auto HG) {
                       // {hash, insts}, sources
-                      auto Info = std::make_pair(HG.begin()->H, instCount(HG));
+                      auto Info = std::make_pair(HG.begin()->H, instCount(HG)/ranges::distance(HG));
                       auto Sources =
                           HG | ranges::view::transform(
                                    [](const auto &FD) { return FD.Source; }) |
@@ -346,10 +346,9 @@ Error functionHash(BCDB &DB) {
         auto Insts = ranges::accumulate(
             A | ranges::view::keys | ranges::view::values, size_t{0});
         auto Count = static_cast<size_t>(ranges::distance(A));
-        Insts /= Count;
         std::string NodeID = formatv("Merged{0}", MergedIdx++);
         std::string VtxL =
-            formatv("{0} Insts/Fn\\n{1} Functions", Insts, Count);
+            formatv("{0} Insts\\n{1} Hashes", Insts, Count);
         Graph.addVertex(NodeID,
                         {{"label", VtxL},
                          {"fontsize", compute_size(Insts)},
