@@ -316,9 +316,8 @@ Error functionHash(BCDB &DB) {
         /// auto Count = static_cast<size_t>(ranges::distance(M));
         auto Insts = instCount(M);
         auto Source = M.begin()->Source;
-        auto Label = formatv("{0}\\n{1} Insts", getModLabel(Source), Insts);
         Graph.addVertex(Source,
-                        {{"label", Label},
+                        {{"label", getModLabel(Source)},
                          {"style", "filled"},
                          {"fontsize", compute_size(Insts)},
                          {"fillcolor", "cyan"}});
