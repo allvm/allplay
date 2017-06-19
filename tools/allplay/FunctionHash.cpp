@@ -335,7 +335,7 @@ Error functionHash(BCDB &DB) {
 
         auto Insts = ranges::accumulate(
             A | ranges::view::keys | ranges::view::values, size_t{0});
-        auto Count = ranges::distance(A);
+        auto Count = static_cast<size_t>(ranges::distance(A));
         Insts /= Count;
         std::string NodeID = formatv("Merged{0}", MergedIdx++);
         std::string VtxL =
