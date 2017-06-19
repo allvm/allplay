@@ -305,17 +305,18 @@ Error functionHash(BCDB &DB) {
                              filter_by_inst_count(GraphThreshold) |
                              ranges::view::join | ranges::to_vector;
 
-      auto Groups = SharedFunctions | group_by_hash() |
-                    ranges::view::transform([](const auto HG) {
-                      // {hash, insts}, sources
-                      auto Info = std::make_pair(HG.begin()->H, instCount(HG)/ranges::distance(HG));
-                      auto Sources =
-                          HG | ranges::view::transform(
-                                   [](const auto &FD) { return FD.Source; }) |
-                          to_vec_sort_uniq();
-                      return std::make_pair(Info, Sources);
-                    }) |
-                    ranges::to_vector;
+      auto Groups =
+          SharedFunctions | group_by_hash() |
+          ranges::view::transform([](const auto HG) {
+            // {hash, insts}, sources
+            auto Info = std::make_pair(HG.begin()->H,
+                                       instCount(HG) / ranges::distance(HG));
+            auto Sources = HG | ranges::view::transform(
+                                    [](const auto &FD) { return FD.Source; }) |
+                           to_vec_sort_uniq();
+            return std::make_pair(Info, Sources);
+          }) |
+          ranges::to_vector;
 
       if (!ShowUnshared)
         Groups |= ranges::action::remove_if(
@@ -347,8 +348,7 @@ Error functionHash(BCDB &DB) {
             A | ranges::view::keys | ranges::view::values, size_t{0});
         auto Count = static_cast<size_t>(ranges::distance(A));
         std::string NodeID = formatv("Merged{0}", MergedIdx++);
-        std::string VtxL =
-            formatv("{0} Insts\\n{1} Hashes", Insts, Count);
+        std::string VtxL = formatv("{0} Insts\\n{1} Hashes", Insts, Count);
         Graph.addVertex(NodeID,
                         {{"label", VtxL},
                          {"fontsize", compute_size(Insts)},
