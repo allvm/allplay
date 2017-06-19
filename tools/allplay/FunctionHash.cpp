@@ -15,6 +15,7 @@
 #include <llvm/Support/Errc.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Format.h>
+#include <llvm/Support/FormatVariadic.h>
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/ToolOutputFile.h>
 #include <llvm/Support/raw_ostream.h>
@@ -290,38 +291,49 @@ Error functionHash(BCDB &DB) {
                              ranges::view::join | ranges::to_vector;
 
       auto Groups = SharedFunctions | group_by_hash() | ranges::view::transform([](const auto HG) {
-          // hash, sources
-          // auto Hash = HG.begin()->H;
-          auto Insts = instCount(HG);
+          // {hash, insts}, sources
+          auto Info = std::make_pair(HG.begin()->H, instCount(HG));
           auto Sources = HG | ranges::view::transform([](const auto &FD) { return FD.Source; }) | to_vec_sort_uniq();
-          return std::make_pair(Insts, Sources);
+          return std::make_pair(Info, Sources);
         }) | ranges::to_vector;
 
       auto ModGroups =
           SharedFunctions | ranges::to_vector |
           ranges::action::sort(std::less<StringRef>(), &FuncDesc::Source);
       RANGES_FOR(auto M, ModGroups | group_by_module()) {
-        auto Count = static_cast<size_t>(ranges::distance(M));
+        /// auto Count = static_cast<size_t>(ranges::distance(M));
+        auto Insts = instCount(M);
         auto Source = M.begin()->Source;
         Graph.addVertex(Source,
                         {{"label", getModLabel(Source)},
                          {"style", "filled"},
-                         {"fontsize", compute_size(Count)},
+                         {"fontsize", compute_size(Insts)},
                          {"fillcolor", "cyan"}});
       }
 
       auto NGroups = Groups | ranges::to_vector |
         ranges::action::sort(std::less<std::vector<std::string>>(), &decltype(Groups)::value_type::second);
 
+      size_t MergedIdx = 0;
       RANGES_FOR(auto A, NGroups | group_by_second()) {
         // Vertex for each group of hashes that have the same neighbors
 
+        auto Insts = ranges::accumulate(A | ranges::view::keys | ranges::view::values, size_t{0});
+        std::string NodeID = formatv("Merged{0}", MergedIdx++);
+        std::string VtxL = formatv("{0} Fns\\n{1} Insts", ranges::distance(A), Insts);
+        Graph.addVertex(NodeID,
+            {{"label", VtxL},
+            {"fontsize", compute_size(Insts)},
+            {"shape", "record"}});
 
-        // if (ranges::distance(A) < 5) continue;
-        for (auto &X: A) {
-          errs() << X.first << ", " << X.second.size() << "\n";
+        auto &Sources = A.begin()->second;
+        for (auto S: Sources) {
+          Graph.addEdge(S, NodeID);
         }
-        errs() << "----\n";
+        //for (auto &X: A) {
+        //  errs() << X.first.first << ", " << X.second.size() << "\n";
+        //}
+        //errs() << "----\n";
       }
       break;
     }
