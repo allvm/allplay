@@ -329,7 +329,7 @@ Error functionHash(BCDB &DB) {
             A | ranges::view::keys | ranges::view::values, size_t{0});
         std::string NodeID = formatv("Merged{0}", MergedIdx++);
         std::string VtxL =
-            formatv("{0} Fns\\n{1} Insts", ranges::distance(A), Insts);
+            formatv("{0} Insts\\n{1} Functions", Insts, ranges::distance(A));
         Graph.addVertex(NodeID,
                         {{"label", VtxL},
                          {"fontsize", compute_size(Insts)},
