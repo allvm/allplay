@@ -43,7 +43,7 @@ Error StringGraph::writeGraph(StringRef F) {
     VertexID Src, Dst;
     llvm::StringRef Attrs;
     std::tie(Src, Dst, Attrs) = E;
-    auto AttrStr  = Attrs.empty() ? std::string() : formatv(" [{0}]", Attrs);
+    auto AttrStr = Attrs.empty() ? std::string() : formatv(" [{0}]", Attrs);
     OS << formatv("Node{0} -> Node{1};\n", Src, Dst, AttrStr);
   }
 

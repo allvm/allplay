@@ -67,11 +67,12 @@ cl::opt<GraphKind> EmitGraphKind(
         clEnumValN(GraphKind::Pairwise, "pairwise",
                    "no hash nodes, edges are number of shared instructions")),
     cl::sub(FunctionHashes));
-cl::opt<SizeKind> Sizing("sizing", cl::desc("Choose node sizing kind"), cl::init(SizeKind::LogSquared), cl::values(
-      clEnumValN(SizeKind::Linear, "linear", "N"),
-      clEnumValN(SizeKind::LogSquared, "log-squared", "(2*log(N))^2"),
-      clEnumValN(SizeKind::LogLog, "log-log", "log(log(N))")
-      ),
+cl::opt<SizeKind> Sizing(
+    "sizing", cl::desc("Choose node sizing kind"),
+    cl::init(SizeKind::LogSquared),
+    cl::values(clEnumValN(SizeKind::Linear, "linear", "N"),
+               clEnumValN(SizeKind::LogSquared, "log-squared", "(2*log(N))^2"),
+               clEnumValN(SizeKind::LogLog, "log-log", "log(log(N))")),
     cl::sub(FunctionHashes));
 cl::opt<bool> ShowUnshared(
     "show-unshared", cl::Optional, cl::init(false),
@@ -158,15 +159,15 @@ auto to_vec_sort_uniq() {
 
 auto size_addend(size_t count) {
   switch (Sizing) {
-    case SizeKind::Linear:
-      return count;
-    case SizeKind::LogSquared: {
-      // log^2(x), adjusted
-      auto l = 2 * std::log(count);
-      return static_cast<size_t>(l * l);
-                               }
-    case SizeKind::LogLog:
-      return static_cast<size_t>(std::log(std::log(count)));
+  case SizeKind::Linear:
+    return count;
+  case SizeKind::LogSquared: {
+    // log^2(x), adjusted
+    auto l = 2 * std::log(count);
+    return static_cast<size_t>(l * l);
+  }
+  case SizeKind::LogLog:
+    return static_cast<size_t>(std::log(std::log(count)));
   }
 }
 
