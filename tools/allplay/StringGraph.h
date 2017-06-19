@@ -26,7 +26,7 @@ public:
   typedef std::pair<std::string, std::string> StringAttr;
   void addVertex(llvm::StringRef S, llvm::ArrayRef<StringAttr> attrs) {
     return addVertex(S, stringify(attrs));
-  };
+  }
   void addVertexWithLabel(llvm::StringRef S, llvm::StringRef L) {
     StringAttr Attr{"label", L};
     return addVertex(S, Attr);
