@@ -315,7 +315,6 @@ Error functionHash(BCDB &DB) {
           SharedFunctions | ranges::to_vector |
           ranges::action::sort(std::less<StringRef>(), &FuncDesc::Source);
       RANGES_FOR(auto M, ModGroups | group_by_module()) {
-        /// auto Count = static_cast<size_t>(ranges::distance(M));
         auto Insts = instCount(M);
         auto Source = M.begin()->Source;
         Graph.addVertex(Source,
@@ -336,9 +335,11 @@ Error functionHash(BCDB &DB) {
 
         auto Insts = ranges::accumulate(
             A | ranges::view::keys | ranges::view::values, size_t{0});
+        auto Count = ranges::distance(A);
+        Insts /= Count;
         std::string NodeID = formatv("Merged{0}", MergedIdx++);
         std::string VtxL =
-            formatv("{0} Insts\\n{1} Functions", Insts, ranges::distance(A));
+            formatv("{0} Insts/Fn\\n{1} Functions", Insts, Count);
         Graph.addVertex(NodeID,
                         {{"label", VtxL},
                          {"fontsize", compute_size(Insts)},
