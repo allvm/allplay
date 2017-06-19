@@ -67,7 +67,8 @@ cl::opt<GraphKind> EmitGraphKind(
         clEnumValN(GraphKind::HashGraphMerged, "hashgraph-merged",
                    "hashgraph but merge nodes with same neighbors"),
         clEnumValN(GraphKind::Pairwise, "pairwise",
-                   "no hash nodes, edges are number of shared instructions")));
+                   "no hash nodes, edges are number of shared instructions")),
+    cl::sub(FunctionHashes));
 
 cl::opt<std::string> WriteCSV("write-csv", cl::Optional, cl::init(""),
                               cl::sub(FunctionHashes));
@@ -115,6 +116,11 @@ auto group_by_hash() {
 auto group_by_module() {
   return ranges::view::group_by(
       [](auto &A, auto &B) { return A.Source == B.Source; });
+}
+
+auto group_by_second() {
+  return ranges::view::group_by(
+      [](auto &A, auto &B) { return A.second == B.second; });
 }
 
 auto to_ptr() {
@@ -233,8 +239,7 @@ Error functionHash(BCDB &DB) {
 
     auto getModLabel = [](StringRef S) { return S.rsplit('/').second; };
     switch (EmitGraphKind) {
-    case GraphKind::HashGraph:
-    case GraphKind::HashGraphMerged: {
+    case GraphKind::HashGraph: {
       auto SharedFunctions = Functions | group_by_hash() |
                              filter_small_ranges(1) |
                              filter_by_inst_count(GraphThreshold) |
@@ -276,6 +281,49 @@ Error functionHash(BCDB &DB) {
       RANGES_FOR(auto &MH, ModHashPairs) {
         Graph.addEdge(MH.first, Twine(MH.second).str());
       }
+      break;
+    }
+    case GraphKind::HashGraphMerged: {
+      auto SharedFunctions = Functions | group_by_hash() |
+                             filter_small_ranges(1) |
+                             filter_by_inst_count(GraphThreshold) |
+                             ranges::view::join | ranges::to_vector;
+
+      auto Groups = SharedFunctions | group_by_hash() | ranges::view::transform([](const auto HG) {
+          // hash, sources
+          // auto Hash = HG.begin()->H;
+          auto Insts = instCount(HG);
+          auto Sources = HG | ranges::view::transform([](const auto &FD) { return FD.Source; }) | to_vec_sort_uniq();
+          return std::make_pair(Insts, Sources);
+        }) | ranges::to_vector;
+
+      auto ModGroups =
+          SharedFunctions | ranges::to_vector |
+          ranges::action::sort(std::less<StringRef>(), &FuncDesc::Source);
+      RANGES_FOR(auto M, ModGroups | group_by_module()) {
+        auto Count = static_cast<size_t>(ranges::distance(M));
+        auto Source = M.begin()->Source;
+        Graph.addVertex(Source,
+                        {{"label", getModLabel(Source)},
+                         {"style", "filled"},
+                         {"fontsize", compute_size(Count)},
+                         {"fillcolor", "cyan"}});
+      }
+
+      auto NGroups = Groups | ranges::to_vector |
+        ranges::action::sort(std::less<std::vector<std::string>>(), &decltype(Groups)::value_type::second);
+
+      RANGES_FOR(auto A, NGroups | group_by_second()) {
+        // Vertex for each group of hashes that have the same neighbors
+
+
+        // if (ranges::distance(A) < 5) continue;
+        for (auto &X: A) {
+          errs() << X.first << ", " << X.second.size() << "\n";
+        }
+        errs() << "----\n";
+      }
+      break;
     }
     case GraphKind::Pairwise: {
       // MergeHashes
@@ -334,6 +382,7 @@ Error functionHash(BCDB &DB) {
         Graph.addEdge(
             S1, S2, {{"weight", Sharing}, {"label", Sharing}, {"dir", "none"}});
       }
+      break;
     }
     };
 
