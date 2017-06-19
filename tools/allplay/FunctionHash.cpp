@@ -330,10 +330,6 @@ Error functionHash(BCDB &DB) {
         for (auto S: Sources) {
           Graph.addEdge(S, NodeID);
         }
-        //for (auto &X: A) {
-        //  errs() << X.first.first << ", " << X.second.size() << "\n";
-        //}
-        //errs() << "----\n";
       }
       break;
     }
