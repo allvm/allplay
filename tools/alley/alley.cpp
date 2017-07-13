@@ -55,6 +55,8 @@ cl::opt<bool> NoExec("noexec", cl::desc("Don't actually execute the program"),
 
 allvm::ExitOnError ExitOnErr;
 
+bool invokedAsAlley(StringRef Argv0) { return Argv0.endswith("alley"); }
+
 } // end anonymous namespace
 
 int main(int argc, const char **argv, const char **envp) {
@@ -89,13 +91,18 @@ int main(int argc, const char **argv, const char **envp) {
                                  Options));
   }
 
-  // Fixup argv[0] to the allexe name without the allexe suffix.
-  StringRef ProgName = InputFilename;
-  if (sys::path::has_extension(InputFilename)) {
-    auto Ext = sys::path::extension(ProgName);
-    if (Ext == "allexe")
-      ProgName = ProgName.drop_back(Ext.size());
-  }
+  StringRef ProgName;
+  if (invokedAsAlley(argv[0])) {
+    // Fixup argv[0] to the allexe name without the allexe suffix.
+    ProgName = InputFilename;
+    if (sys::path::has_extension(InputFilename)) {
+      auto Ext = sys::path::extension(ProgName);
+      if (Ext == "allexe")
+        ProgName = ProgName.drop_back(Ext.size());
+    }
+  } else
+    ProgName = argv[0];
+
   InputArgv.insert(InputArgv.begin(), ProgName);
 
   ExecutionYengine EY({*allexe, InputArgv, envp, LibNone, NoExec});
