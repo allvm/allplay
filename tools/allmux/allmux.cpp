@@ -64,6 +64,13 @@ struct Entry {
   std::string getDtorsName() const { return formatv("dtors_{0}", Base); }
 };
 
+std::string getLibCtorsName(Allexe &A, size_t i) {
+  return formatv("ctors_${0}", A.getModuleCRC(i));
+}
+std::string getLibDtorsName(Allexe &A, size_t i) {
+  return formatv("dtors_${0}", A.getModuleCRC(i));
+}
+
 Error verifyModule(Module &M) {
   std::string err;
   raw_string_ostream OS(err);
@@ -132,9 +139,16 @@ Expected<std::unique_ptr<Module>> genMain(ArrayRef<Entry> Es, LLVMContext &C,
       Args.push_back(&*AI);
     }
 
-    auto *CtorsDecl = MuxMain->getOrInsertFunction(
-        E.getCtorsName(), Builder.getVoidTy(), nullptr);
-    Builder.CreateCall(CtorsDecl);
+    auto callCtorDtor = [&](auto FName) {
+      auto *Decl =
+          MuxMain->getOrInsertFunction(FName, Builder.getVoidTy(), nullptr);
+      Builder.CreateCall(Decl);
+    };
+
+    for (size_t i = E.A->getNumModules() - 1; i >= 1; --i)
+      callCtorDtor(getLibCtorsName(*E.A, i));
+
+    callCtorDtor(E.getCtorsName());
 
     auto *Call = Builder.CreateCall(RealMainDecl, Args);
 
@@ -143,9 +157,10 @@ Expected<std::unique_ptr<Module>> genMain(ArrayRef<Entry> Es, LLVMContext &C,
     // Idea: add a single llvm.global_dtors entry for the mux'd main
     // which invokes the dtorfn stored in a global variable we write
     // to once we know which program we're running.
-    auto *DtorsDecl = MuxMain->getOrInsertFunction(
-        E.getDtorsName(), Builder.getVoidTy(), nullptr);
-    Builder.CreateCall(DtorsDecl);
+    callCtorDtor(E.getDtorsName());
+
+    for (size_t i = 1, e = E.A->getNumModules(); i < e; ++i)
+      callCtorDtor(getLibDtorsName(*E.A, i));
 
     Value *Ret = Call;
     if (Call->getType()->isVoidTy())
@@ -287,16 +302,11 @@ int main(int argc, const char **argv) {
           auto Name = E.A->getModuleName(i);
           ExitOnErr(LibMod->materializeAll());
 
-          auto WarnFmtS = "WARNING: Support library '{0}' contains static {1} "
-                          "which might not be handled correctly!\n";
-          if (auto CtorsGV = ExitOnErr(findGlobalCtors(*LibMod))) {
-            errs() << formatv(WarnFmtS, Name, "constructors");
-            CtorsGV->dump();
-          }
-          if (auto DtorsGV = ExitOnErr(findGlobalDtors(*LibMod))) {
-            errs() << formatv(WarnFmtS, Name, "destructors");
-            DtorsGV->dump();
-          }
+          auto CtorsGV = ExitOnErr(findGlobalCtors(*LibMod));
+          replaceCtorsDtorsGV(CtorsGV, *LibMod, getLibCtorsName(*E.A, i));
+
+          auto DtorsGV = ExitOnErr(findGlobalDtors(*LibMod));
+          replaceCtorsDtorsGV(DtorsGV, *LibMod, getLibDtorsName(*E.A, i));
 
           ExitOnErr(Output->addModule(std::move(LibMod), Name));
         }
