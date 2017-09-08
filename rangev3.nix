@@ -4,13 +4,13 @@ let
   isMusl = stdenv.isMusl or false;
 in stdenv.mkDerivation rec {
   name = "range-v3-${version}";
-  version = "2.5";
+  version = "0.3.0";
 
   src = fetchFromGitHub {
     owner = "ericniebler";
     repo = "range-v3";
-    rev = "8e12b0ea21b4e2c57fd0e77726b0e51b96e6a8b6";
-    sha256 = "14avawj4ycnff5cz7gwvcr19abahlhrv2b41glkmahj16an04qjr";
+    rev = version;
+    sha256 = "176vrxxq1ay7lvr2g3jh6wc2ds6yriaqdyf4s5cv8mbbsqis6z1n";
   };
 
   buildInputs = [ cmake ];
