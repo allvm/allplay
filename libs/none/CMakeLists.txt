@@ -10,6 +10,7 @@ set(MUSL_PATCHES
   musl-patches/0006-configure-improve-tryflag-to-reject-ignored-opt-argu.patch
   musl-patches/0007-Partially-revert-remove-potentially-PIC-incompatible.patch
   musl-patches/0008-kludge-around-_DYNAMIC-and-our-bad-weak-symbol-handl.patch
+  musl-patches/spawnp-stack.patch
 )
 
 set(MUSL_CFLAGS_EXTRA "")
@@ -28,7 +29,9 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   set(MUSL_CFLAGS_EXTRA "${MUSL_CFLAGS_EXTRA} -Wno-ignored-attributes -Wno-unknown-pragmas")
 endif()
 
-set(MUSL_CFLAGS "-O2 -pipe -fPIC ${MUSL_CFLAGS_EXTRA}" CACHE string "CFLAGS for building musl")
+set(MUSL_CFLAGS_EXTRA "${MUSL_CFLAGS_EXTRA} -fstack-protector-all")
+
+set(MUSL_CFLAGS "-fPIC ${MUSL_CFLAGS_EXTRA}" CACHE string "CFLAGS for building musl")
 
 
 add_custom_command(OUTPUT ${MUSL}/config.mak
@@ -50,7 +53,7 @@ else()
 endif()
 
 add_custom_command(OUTPUT ${MUSL}/lib/libc.a
-  COMMAND ${MAKECMD} -C ${MUSL}
+  COMMAND hardeningDisable=stackprotector ${MAKECMD} -C ${MUSL}
   DEPENDS ${MUSL}/config.mak
   COMMENT "Building ${MUSL}..."
 )

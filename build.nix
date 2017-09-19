@@ -51,8 +51,5 @@ stdenv.mkDerivation {
     paxmark m bin/alley
   '';
 
-  # musl needs stackprotector disabled
-  hardeningDisable = "stackprotector";
-
   enableParallelBuilding = true;
 }
