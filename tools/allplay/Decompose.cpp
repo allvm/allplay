@@ -59,7 +59,7 @@ cl::opt<bool>
     LLVMSplitModule("llvm-splitmodule", cl::Optional, cl::init(false),
                     cl::desc("Use LLVM's SplitModule instead of local version"),
                     cl::sub(Decompose));
-cl::opt<bool> StripSourceInfo(
+cl::opt<bool> StripSourceInfoFlag(
     "strip-source-info", cl::Optional, cl::init(false),
     cl::desc("Remove information identifying module/allvm/disk origin"),
     cl::sub(Decompose));
@@ -138,7 +138,7 @@ Error allvm::decompose(
     std::unique_ptr<llvm::Module> M,
     function_ref<Error(std::unique_ptr<Module> MPart, StringRef Path)>
         ModuleCallback,
-    bool Verbose) {
+    bool Verbose, bool StripSourceInfo) {
 
   auto &OS = Verbose ? errs() : nulls();
 
@@ -256,7 +256,7 @@ Error allvm::decompose(
 }
 
 Error allvm::decompose_into_dir(StringRef BCFile, StringRef OutDir,
-                                bool Verbose) {
+                                bool Verbose, bool StripSourceInfo) {
   LLVMContext C;
   SMDiagnostic Diag;
   auto M = parseIRFile(BCFile, Diag, C);
@@ -266,11 +266,11 @@ Error allvm::decompose_into_dir(StringRef BCFile, StringRef OutDir,
 
   if (auto Err = M->materializeAll())
     return Err;
-  return decompose_into_dir(std::move(M), OutDir, Verbose);
+  return decompose_into_dir(std::move(M), OutDir, Verbose, StripSourceInfo);
 }
 
 Error allvm::decompose_into_dir(std::unique_ptr<llvm::Module> M,
-                                StringRef OutDir, bool Verbose) {
+                                StringRef OutDir, bool Verbose, bool StripSourceInfo) {
   if (auto EC = sys::fs::create_directories(OutDir))
     return errorCodeToError(EC);
 
@@ -279,11 +279,11 @@ Error allvm::decompose_into_dir(std::unique_ptr<llvm::Module> M,
                      std::string Path = (OutDir + "/" + Filename).str();
                      return writeBCToDisk(std::move(OutM), Path);
                    },
-                   Verbose);
+                   Verbose, StripSourceInfo);
 }
 
 Error allvm::decompose_into_tar(StringRef BCFile, StringRef OutDir,
-                                bool Verbose) {
+                                bool Verbose, bool StripSourceInfo) {
   LLVMContext C;
   SMDiagnostic Diag;
   auto M = parseIRFile(BCFile, Diag, C);
@@ -293,11 +293,11 @@ Error allvm::decompose_into_tar(StringRef BCFile, StringRef OutDir,
 
   if (auto Err = M->materializeAll())
     return Err;
-  return decompose_into_tar(std::move(M), OutDir, Verbose);
+  return decompose_into_tar(std::move(M), OutDir, Verbose, StripSourceInfo);
 }
 
 Error allvm::decompose_into_tar(std::unique_ptr<llvm::Module> M,
-                                StringRef TarFile, bool Verbose) {
+                                StringRef TarFile, bool Verbose, bool StripSourceInfo) {
   StringRef BasePath = "bits"; // TODO: something useful for this?
   auto TW = TarWriter::create(TarFile, BasePath);
   if (!TW)
@@ -315,15 +315,15 @@ Error allvm::decompose_into_tar(std::unique_ptr<llvm::Module> M,
 
                      return Error::success();
                    },
-                   Verbose);
+                   Verbose, StripSourceInfo);
 }
 
 namespace {
 CommandRegistration
 Unused(&Decompose, [](ResourcePaths &RP LLVM_ATTRIBUTE_UNUSED) -> Error {
   if (WriteTar)
-    return decompose_into_tar(InputFile, OutputPath, true);
+    return decompose_into_tar(InputFile, OutputPath, true, StripSourceInfoFlag);
   else
-    return decompose_into_dir(InputFile, OutputPath, true);
+    return decompose_into_dir(InputFile, OutputPath, true, StripSourceInfoFlag);
 });
 } // end anonymous namespace

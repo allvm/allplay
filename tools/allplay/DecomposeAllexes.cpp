@@ -46,6 +46,10 @@ cl::opt<unsigned> Threads("j", cl::Optional, cl::init(0),
 cl::opt<bool> ExtractModulesFromAllexes("extract-from-allexes", cl::Optional,
                                         cl::init(false),
                                         cl::sub(DecomposeAllexes));
+cl::opt<bool> StripSourceInfo(
+    "strip-source-info", cl::Optional, cl::init(false),
+    cl::desc("Remove information identifying module/allvm/disk origin"),
+    cl::sub(DecomposeAllexes));
 
 std::mutex ProgressMtx;
 
@@ -91,7 +95,7 @@ Error decomposeAllexes(BCDB &DB, ResourcePaths &RP) {
       std::string tarf = (OutBase + "/" + utostr(I++) + ".tar").str();
       TP.async(
           [&](auto Filename, auto OutTar) {
-            ExitOnErr(decompose_into_tar(Filename, OutTar, false));
+            ExitOnErr(decompose_into_tar(Filename, OutTar, false, StripSourceInfo));
             std::lock_guard<std::mutex> Lock(ProgressMtx);
             ++progress;
           },
@@ -106,7 +110,7 @@ Error decomposeAllexes(BCDB &DB, ResourcePaths &RP) {
             LLVMContext C;
             auto M = ExitOnErr(A->getModule(0, C));
             ExitOnErr(M->materializeAll());
-            ExitOnErr(decompose_into_tar(std::move(M), OutTar, false));
+            ExitOnErr(decompose_into_tar(std::move(M), OutTar, false, StripSourceInfo));
             std::lock_guard<std::mutex> Lock(ProgressMtx);
             ++progress;
           },
