@@ -95,7 +95,8 @@ Error decomposeAllexes(BCDB &DB, ResourcePaths &RP) {
       std::string tarf = (OutBase + "/" + utostr(I++) + ".tar").str();
       TP.async(
           [&](auto Filename, auto OutTar) {
-            ExitOnErr(decompose_into_tar(Filename, OutTar, false, StripSourceInfo));
+            ExitOnErr(
+                decompose_into_tar(Filename, OutTar, false, StripSourceInfo));
             std::lock_guard<std::mutex> Lock(ProgressMtx);
             ++progress;
           },
@@ -110,7 +111,8 @@ Error decomposeAllexes(BCDB &DB, ResourcePaths &RP) {
             LLVMContext C;
             auto M = ExitOnErr(A->getModule(0, C));
             ExitOnErr(M->materializeAll());
-            ExitOnErr(decompose_into_tar(std::move(M), OutTar, false, StripSourceInfo));
+            ExitOnErr(decompose_into_tar(std::move(M), OutTar, false,
+                                         StripSourceInfo));
             std::lock_guard<std::mutex> Lock(ProgressMtx);
             ++progress;
           },

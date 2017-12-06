@@ -270,7 +270,8 @@ Error allvm::decompose_into_dir(StringRef BCFile, StringRef OutDir,
 }
 
 Error allvm::decompose_into_dir(std::unique_ptr<llvm::Module> M,
-                                StringRef OutDir, bool Verbose, bool StripSourceInfo) {
+                                StringRef OutDir, bool Verbose,
+                                bool StripSourceInfo) {
   if (auto EC = sys::fs::create_directories(OutDir))
     return errorCodeToError(EC);
 
@@ -297,7 +298,8 @@ Error allvm::decompose_into_tar(StringRef BCFile, StringRef OutDir,
 }
 
 Error allvm::decompose_into_tar(std::unique_ptr<llvm::Module> M,
-                                StringRef TarFile, bool Verbose, bool StripSourceInfo) {
+                                StringRef TarFile, bool Verbose,
+                                bool StripSourceInfo) {
   StringRef BasePath = "bits"; // TODO: something useful for this?
   auto TW = TarWriter::create(TarFile, BasePath);
   if (!TW)

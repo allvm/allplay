@@ -16,13 +16,17 @@ decompose(std::unique_ptr<llvm::Module> M,
           bool Verbose = false, bool StripSourceInfo = false);
 
 llvm::Error decompose_into_dir(llvm::StringRef BCFile, llvm::StringRef OutDir,
-                               bool Verbose = false, bool StripSourceInfo = false);
+                               bool Verbose = false,
+                               bool StripSourceInfo = false);
 llvm::Error decompose_into_dir(std::unique_ptr<llvm::Module> M,
-                               llvm::StringRef OutDir, bool Verbose = false, bool StripSourceInfo = false);
+                               llvm::StringRef OutDir, bool Verbose = false,
+                               bool StripSourceInfo = false);
 llvm::Error decompose_into_tar(llvm::StringRef BCFile, llvm::StringRef TarFile,
-                               bool Verbose = false, bool StripSourceInfo = false);
+                               bool Verbose = false,
+                               bool StripSourceInfo = false);
 llvm::Error decompose_into_tar(std::unique_ptr<llvm::Module> M,
-                               llvm::StringRef TarFile, bool Verbose = false, bool StripSourceInfo = false);
+                               llvm::StringRef TarFile, bool Verbose = false,
+                               bool StripSourceInfo = false);
 
 } // end namespace allvm
 
