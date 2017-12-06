@@ -59,10 +59,10 @@ cl::opt<bool>
     LLVMSplitModule("llvm-splitmodule", cl::Optional, cl::init(false),
                     cl::desc("Use LLVM's SplitModule instead of local version"),
                     cl::sub(Decompose));
-cl::opt<bool>
-    StripSourceInfo("strip-source-info", cl::Optional, cl::init(false),
-        cl::desc("Remove information identifying module/allvm/disk origin"),
-        cl::sub(Decompose));
+cl::opt<bool> StripSourceInfo(
+    "strip-source-info", cl::Optional, cl::init(false),
+    cl::desc("Remove information identifying module/allvm/disk origin"),
+    cl::sub(Decompose));
 
 bool isUsefulByItself(GlobalValue *GV) { return !GV->isDeclaration(); }
 
@@ -228,7 +228,7 @@ Error allvm::decompose(
         OutM->getModuleFlagsMetadata(Flags);
         OutM->eraseNamedMetadata(ModFlagsNode);
 
-        for (auto & MFE : Flags) {
+        for (auto &MFE : Flags) {
           auto Key = MFE.Key->getString();
           // Skip our flags
           if (Key == MF_ALLVM_SOURCE || Key == MF_WLLVM_SOURCE)
