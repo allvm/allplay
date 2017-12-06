@@ -5,6 +5,8 @@
 
 #include "allvm/SplitModule.h"
 
+#include "allvm/ModuleFlags.h"
+
 #include <llvm/ADT/StringExtras.h>
 #include <llvm/Bitcode/BitcodeReader.h>
 #include <llvm/Bitcode/BitcodeWriter.h>
@@ -57,6 +59,10 @@ cl::opt<bool>
     LLVMSplitModule("llvm-splitmodule", cl::Optional, cl::init(false),
                     cl::desc("Use LLVM's SplitModule instead of local version"),
                     cl::sub(Decompose));
+cl::opt<bool>
+    StripSourceInfo("strip-source-info", cl::Optional, cl::init(false),
+        cl::desc("Remove information identifying module/allvm/disk origin"),
+        cl::sub(Decompose));
 
 bool isUsefulByItself(GlobalValue *GV) { return !GV->isDeclaration(); }
 
@@ -209,9 +215,29 @@ Error allvm::decompose(
   auto writeToDisk = [&](auto OutM) {
     StringRef Suffix = OutM->getModuleIdentifier();
     assert(Suffix.startswith(ModuleIDPrefix));
-    Suffix.consume_front(ModuleIDPrefix);
+    if (!StripSourceInfo) {
+      Suffix.consume_front(ModuleIDPrefix);
 
-    OutM->setModuleIdentifier((OrigModID + Suffix).str());
+      OutM->setModuleIdentifier((OrigModID + Suffix).str());
+    } else {
+      OutM->setModuleIdentifier("");
+      OutM->setSourceFileName("");
+      auto *ModFlagsNode = OutM->getModuleFlagsMetadata();
+      if (ModFlagsNode) {
+        SmallVector<Module::ModuleFlagEntry, 8> Flags;
+        OutM->getModuleFlagsMetadata(Flags);
+        OutM->eraseNamedMetadata(ModFlagsNode);
+
+        for (auto & MFE : Flags) {
+          auto Key = MFE.Key->getString();
+          // Skip our flags
+          if (Key == MF_ALLVM_SOURCE || Key == MF_WLLVM_SOURCE)
+            continue;
+          // Otherwise, add it
+          OutM->addModuleFlag(MFE.Behavior, Key, MFE.Val);
+        }
+      }
+    }
 
     std::string OutName = utostr(CurModIdx++);
     if (auto E = ModuleCallback(std::move(OutM), OutName)) {
