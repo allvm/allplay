@@ -13,7 +13,7 @@ assert useClangWerrorFlags -> stdenv.cc.isClang;
 
 let
   inherit (stdenv) lib;
-  gitrev = lib.commitIdFromGitRepo ./.git;
+  gitrev = lib.commitIdFromGitRepo ../.git;
   gitshort = builtins.substring 0 7 gitrev;
 
   sourceFilter = name: type: let baseName = baseNameOf (toString name); in
@@ -29,7 +29,7 @@ stdenv.mkDerivation {
   name = "allvm-tools-analysis-git-${gitshort}";
   version = gitshort;
 
-  src = builtins.filterSource sourceFilter ./.;
+  src = builtins.filterSource sourceFilter ./..;
 
   nativeBuildInputs = [ cmake git python2 ] ++ lib.optionals buildDocs [ pandoc tex ];
   buildInputs = [ llvm lld zlib rangev3 ];
