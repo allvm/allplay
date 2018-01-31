@@ -11,7 +11,7 @@
 #ifndef ALLVM_BCDB_H
 #define ALLVM_BCDB_H
 
-#include "allvm/Allexe.h"
+#include <allvm/Allexe.h>
 
 #include <llvm/ADT/DenseMap.h>
 #include <llvm/ADT/SmallVector.h>

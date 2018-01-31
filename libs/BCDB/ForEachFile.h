@@ -11,8 +11,8 @@
 #ifndef ALLVM_FOREACH_FILE_H
 #define ALLVM_FOREACH_FILE_H
 
-#include "allvm/Allexe.h"
-#include "allvm/ResourcePaths.h"
+#include <allvm/Allexe.h>
+#include <allvm/ResourcePaths.h>
 
 #include <llvm/ADT/SmallString.h>
 #include <llvm/ADT/Twine.h>
