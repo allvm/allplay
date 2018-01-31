@@ -1,9 +1,8 @@
 # This file is usually 'default.nix'
 { stdenv
-, cmake, git, python2
-, llvm, clang, lld, zlib
+, cmake, git,
+, llvm, clang
 , rangev3
-, buildDocs ? true, pandoc, texlive
 , useClangWerrorFlags ? stdenv.cc.isClang
 }:
 
@@ -21,8 +20,6 @@ let
       (type == "directory" && (lib.hasPrefix "build" baseName ||
                                lib.hasPrefix "install" baseName))
   );
-
-  tex = texlive.combined.scheme-medium;
 in
 
 stdenv.mkDerivation {
@@ -31,13 +28,12 @@ stdenv.mkDerivation {
 
   src = builtins.filterSource sourceFilter ./..;
 
-  nativeBuildInputs = [ cmake git python2 ] ++ lib.optionals buildDocs [ pandoc tex ];
-  buildInputs = [ llvm lld zlib rangev3 ];
+  nativeBuildInputs = [ cmake git ];
+  buildInputs = [ llvm rangev3 ];
 
   doCheck = true;
 
   cmakeFlags = [
-    "-DBUILD_DOCS=${if buildDocs then "ON" else "OFF"}"
     "-DGITVERSION=${gitshort}-dev"
     "-DCLANGFORMAT=${clang.cc}/bin/clang-format"
   ] ++ stdenv.lib.optional useClangWerrorFlags "-DUSE_CLANG_WERROR_FLAGS=ON";
@@ -45,10 +41,6 @@ stdenv.mkDerivation {
   # Check formatting, not parallel for more readable output
   preCheck = ''
     make check-format -j1
-  '';
-
-  postBuild = ''
-    paxmark m bin/alley
   '';
 
   enableParallelBuilding = true;
