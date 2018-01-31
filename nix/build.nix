@@ -4,7 +4,8 @@
 , llvm, clang
 , rangev3
 , useClangWerrorFlags ? stdenv.cc.isClang
-, allvm-tools ? (import <allvm>).allvm-tools
+#, allvm-tools ? (import <allvm> {}).allvm-tools
+, allvm-tools ? (import ((builtins.fetchGit { url = ../.; ref = "master"; }) + "/default.nix") {}).allvm-tools-clang
 }:
 
 # Make sure no one tries to enable clang-specific flags
