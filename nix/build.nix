@@ -32,8 +32,6 @@ stdenv.mkDerivation {
   nativeBuildInputs = [ cmake git ];
   buildInputs = [ llvm rangev3 allvm-tools ];
 
-  doCheck = true;
-
   cmakeFlags = [
     "-DGITVERSION=${gitshort}-dev"
     "-DCLANGFORMAT=${clang.cc}/bin/clang-format"
