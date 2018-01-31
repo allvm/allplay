@@ -9,7 +9,7 @@ endif()
 if (NOT GITVERSION)
   message(FATAL_ERROR "Unable to find 'git'! Is it installed?")
 else()
-  message(STATUS "Detected ALLVM Tools source version: ${GITVERSION}")
+  message(STATUS "Detected ALLVM Analysis source version: ${GITVERSION}")
 endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/allvm/GitVersion.h.in
