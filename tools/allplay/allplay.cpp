@@ -12,7 +12,6 @@
 #include <allvm/BCDB.h>
 #include <allvm/ExitOnError.h>
 #include <allvm/GitVersion.h>
-#include <allvm/ResourceAnchor.h>
 
 #include "subcommand-registry.h"
 
@@ -39,7 +38,7 @@ int main(int argc, const char *argv[]) {
 
   cl::ParseCommandLineOptions(argc, argv, "allplay\n\n");
 
-  ResourcePaths RP = ResourcePaths::getAnchored(argv[0]);
+  ResourcePaths RP = ResourcePaths::get(ALLVM_PREFIX);
 
   for (auto *SC : cl::getRegisteredSubcommands()) {
     if (*SC) {

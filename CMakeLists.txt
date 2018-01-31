@@ -18,7 +18,9 @@ message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
 find_package(ALLVM REQUIRED)
 message(STATUS "Found ALLVM ${ALLVM_VERSION}")
-message(STATUS "Found ALLVM in: ${ALLVM_DIR}")
+message(STATUS "Found ALLVM installed at prefix: ${ALLVM_PREFIX}")
+
+add_definitions(-DALLVM_PREFIX="${ALLVM_PREFIX}")
 
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
