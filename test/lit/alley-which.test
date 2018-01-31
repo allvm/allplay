@@ -1,8 +1,0 @@
-// Test that we can execute a simple allexe
-// RUN: alley %p/Inputs/which alley
-
-// Test we produce error return value properly, and check output:
-// RUN: not alley %p/Inputs/which |& FileCheck %s
-
-// CHECK: Usage:
-// CHECK: Report bugs to

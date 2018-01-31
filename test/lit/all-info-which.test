@@ -1,5 +1,0 @@
-RUN: all-info %p/Inputs/which |& FileCheck %s 
-
-CHECK: Modules:
-CHECK-NEXT:	main.bc
-CHECK-SAME: 9561D0E4

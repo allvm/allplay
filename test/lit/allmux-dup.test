@@ -1,5 +1,0 @@
-// check that allmux bails if there are conflicting names
-
-// RUN: not allmux %p/Inputs/time %p/Inputs/time -o %t |& FileCheck %s
-
-// CHECK: Duplicate
