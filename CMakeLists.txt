@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.4)
 
-project (ALLVM CXX C)
+project (ALLVM-Analysis CXX C)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -74,22 +74,6 @@ if (USE_CLANG_WERROR_FLAGS)
   list(APPEND LLVM_DEFINITIONS ${WARNING_FLAGS} -Werror)
 endif()
 
-option(USE_QEMU_FEXECVE_WORKAROUND "Try to avoid using fexecve() as workaround for use with qemu user emulation. YMMV." OFF)
-mark_as_advanced(USE_QEMU_FEXECVE_WORKAROUND)
-if (USE_QEMU_FEXECVE_WORKAROUND)
-  message(WARNING "Enabling unsupported fexecve() workaround...")
-  add_definitions(-DUSE_QEMU_FEXECVE_WORKAROUND)
-endif()
-
-find_library(LLD_AVAILABLE_AS_LIB lldELF)
-if ( LLD_AVAILABLE_AS_LIB )
-  add_definitions(-DALLVM_alld_available)
-else()
-  message(WARNING
-"lld was not built with found LLVM. "
-"The internal linker (alld) will not be built.")
-endif()
-
 # Put libs and bins in expected place.
 # XXX: We don't setup CMAKE_CFG_INTDIR to distinguish Release/Debug/etc.
 set(LLVM_RUNTIME_OUTPUT_INTDIR
@@ -119,4 +103,4 @@ include(Version)
 
 add_subdirectory (libs)
 add_subdirectory (tools)
-add_subdirectory (test)
+#add_subdirectory (test)
