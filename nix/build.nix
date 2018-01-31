@@ -1,9 +1,10 @@
 # This file is usually 'default.nix'
 { stdenv
-, cmake, git,
+, cmake, git
 , llvm, clang
 , rangev3
 , useClangWerrorFlags ? stdenv.cc.isClang
+, allvm-tools ? (import <allvm>).allvm-tools
 }:
 
 # Make sure no one tries to enable clang-specific flags
@@ -29,7 +30,7 @@ stdenv.mkDerivation {
   src = builtins.filterSource sourceFilter ./..;
 
   nativeBuildInputs = [ cmake git ];
-  buildInputs = [ llvm rangev3 ];
+  buildInputs = [ llvm rangev3 allvm-tools ];
 
   doCheck = true;
 
