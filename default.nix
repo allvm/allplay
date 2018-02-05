@@ -1,8 +1,6 @@
-let
-  allvm-tools-src = builtins.fetchGit { url = ./.; ref = "master"; };
-in
 {
 nixpkgs ? import ./nix/fetch-nixpkgs.nix,
+allvm-tools-src ? builtins.fetchGit { url ./.; ref = "master"; },
 allvm-tools ? (import allvm-tools-src {}).allvm-tools-clang
 }:
 
