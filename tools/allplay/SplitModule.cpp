@@ -7,15 +7,15 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file defines the function allvm::SplitModule, which splits a module
-// into multiple linkable partitions. It can be used to implement parallel code
-// generation for link-time optimization.
+// This file defines the function allvm_analysis::SplitModule, which splits
+// a module into multiple linkable partitions. It can be used to implement
+// parallel code generation for link-time optimization.
 //
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "split-module"
 
-#include "allvm/SplitModule.h"
+#include "allvm-analysis/SplitModule.h"
 
 #include <llvm/ADT/EquivalenceClasses.h>
 #include <llvm/ADT/Hashing.h>
@@ -34,7 +34,7 @@
 
 #include <queue>
 
-using namespace allvm;
+using namespace allvm_analysis;
 using namespace llvm;
 
 namespace {
@@ -239,7 +239,7 @@ static bool isInPartition(const GlobalValue *GV, unsigned I, unsigned N) {
   return (Bits % N) == I;
 }
 
-void allvm::SplitModule(
+void allvm_analysis::SplitModule(
     std::unique_ptr<Module> M, unsigned N,
     function_ref<void(std::unique_ptr<Module> MPart)> ModuleCallback,
     bool PreserveLocals) {

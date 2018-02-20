@@ -1,7 +1,7 @@
 # format checking
 # (based on polly's format checking)
 # Build list of all clang-format'able files
-file(GLOB_RECURSE files include/allvm/*.h tools/*.h tools/*.c tools/*.cpp libs/*.h libs/*.c libs/*.cpp)
+file(GLOB_RECURSE files include/allvm-analysis/*.h tools/*.h tools/*.c tools/*.cpp libs/*.h libs/*.c libs/*.cpp)
 
 # Command use to format a file
 set(CLANGFORMAT clang-format CACHE STRING "Path to clang-format command to use")

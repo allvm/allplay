@@ -8,10 +8,11 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "allvm-analysis/BCDB.h"
+#include "allvm-analysis/GitVersion.h"
+
 #include <allvm/Allexe.h>
-#include <allvm/BCDB.h>
 #include <allvm/ExitOnError.h>
-#include <allvm/GitVersion.h>
 
 #include "subcommand-registry.h"
 
@@ -22,6 +23,7 @@
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/raw_ostream.h>
 
+using namespace allvm_analysis;
 using namespace allvm;
 using namespace llvm;
 

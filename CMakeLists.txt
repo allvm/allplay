@@ -60,9 +60,9 @@ set(ALLVM_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/include)
 
 include_directories (${PROJECT_SOURCE_DIR}/include ${ALLVM_INCLUDE_DIR})
 
-install(DIRECTORY include/allvm ${ALLVM_INCLUDE_DIR}/allvm
+install(DIRECTORY include/allvm-analysis ${ALLVM_INCLUDE_DIR}/allvm-analysis
   DESTINATION include
-  COMPONENT allvm-headers
+  COMPONENT allvm-analysis-headers
   FILES_MATCHING PATTERN "*.h"
 )
 ###

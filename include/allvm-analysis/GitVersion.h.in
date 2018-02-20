@@ -1,0 +1,18 @@
+#ifndef ALLVM_ANALYSIS_VERSION_H
+#define ALLVM_ANALYSIS_VERSION_H
+
+#include <llvm/ADT/StringRef.h>
+#include <llvm/Support/CommandLine.h>
+#include <llvm/Support/raw_ostream.h>
+
+namespace allvm_analysis {
+
+__attribute__((constructor)) void setVersionPrinter(void);
+void setVersionPrinter() {
+  llvm::cl::AddExtraVersionPrinter(
+      []() { llvm::errs() << "ALLVM Analysis Tools: git-@GITVERSION@\n"; });
+}
+
+} // end namespace allvm_analysis
+
+#endif // ALLVM_ANALYSIS_VERSION_H

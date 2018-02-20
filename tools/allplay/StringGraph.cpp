@@ -10,7 +10,7 @@
 
 #include <range/v3/all.hpp>
 
-using namespace allvm;
+using namespace allvm_analysis;
 using namespace llvm;
 
 Error StringGraph::writeGraph(StringRef F) {

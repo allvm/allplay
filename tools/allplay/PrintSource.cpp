@@ -1,6 +1,6 @@
 #include "subcommand-registry.h"
 
-#include "allvm/ModuleFlags.h"
+#include "allvm-analysis/ModuleFlags.h"
 
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IRReader/IRReader.h>
@@ -9,6 +9,7 @@
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_ostream.h>
 
+using namespace allvm_analysis;
 using namespace allvm;
 using namespace llvm;
 

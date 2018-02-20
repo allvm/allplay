@@ -3,9 +3,8 @@
 #include "boost_progress.h"
 #include "subcommand-registry.h"
 
-#include "allvm/SplitModule.h"
-
-#include "allvm/ModuleFlags.h"
+#include "allvm-analysis/SplitModule.h"
+#include "allvm-analysis/ModuleFlags.h"
 
 #include <llvm/ADT/StringExtras.h>
 #include <llvm/Bitcode/BitcodeReader.h>
@@ -28,6 +27,7 @@
 #include <algorithm>
 #include <vector>
 
+using namespace allvm_analysis;
 using namespace allvm;
 using namespace llvm;
 
@@ -134,7 +134,7 @@ const StringRef ModuleIDPrefix = "base";
 
 } // end anonymous namespace
 
-Error allvm::decompose(
+Error allvm_analysis::decompose(
     std::unique_ptr<llvm::Module> M,
     function_ref<Error(std::unique_ptr<Module> MPart, StringRef Path)>
         ModuleCallback,
@@ -162,7 +162,7 @@ Error allvm::decompose(
       size_t Empty = 0;
       size_t Count = 0;
       size_t Before = ModQ.size();
-      auto SplitFn = LLVMSplitModule ? llvm::SplitModule : allvm::SplitModule;
+      auto SplitFn = LLVMSplitModule ? llvm::SplitModule : allvm_analysis::SplitModule;
       SplitFn(std::move(CurM), SplitFactor,
               [&](std::unique_ptr<Module> MPart) {
                 removeDeadGlobalDecls(*MPart);
@@ -255,7 +255,7 @@ Error allvm::decompose(
   return std::move(E);
 }
 
-Error allvm::decompose_into_dir(StringRef BCFile, StringRef OutDir,
+Error allvm_analysis::decompose_into_dir(StringRef BCFile, StringRef OutDir,
                                 bool Verbose, bool StripSourceInfo) {
   LLVMContext C;
   SMDiagnostic Diag;
@@ -269,7 +269,7 @@ Error allvm::decompose_into_dir(StringRef BCFile, StringRef OutDir,
   return decompose_into_dir(std::move(M), OutDir, Verbose, StripSourceInfo);
 }
 
-Error allvm::decompose_into_dir(std::unique_ptr<llvm::Module> M,
+Error allvm_analysis::decompose_into_dir(std::unique_ptr<llvm::Module> M,
                                 StringRef OutDir, bool Verbose,
                                 bool StripSourceInfo) {
   if (auto EC = sys::fs::create_directories(OutDir))
@@ -283,7 +283,7 @@ Error allvm::decompose_into_dir(std::unique_ptr<llvm::Module> M,
                    Verbose, StripSourceInfo);
 }
 
-Error allvm::decompose_into_tar(StringRef BCFile, StringRef OutDir,
+Error allvm_analysis::decompose_into_tar(StringRef BCFile, StringRef OutDir,
                                 bool Verbose, bool StripSourceInfo) {
   LLVMContext C;
   SMDiagnostic Diag;
@@ -297,7 +297,7 @@ Error allvm::decompose_into_tar(StringRef BCFile, StringRef OutDir,
   return decompose_into_tar(std::move(M), OutDir, Verbose, StripSourceInfo);
 }
 
-Error allvm::decompose_into_tar(std::unique_ptr<llvm::Module> M,
+Error allvm_analysis::decompose_into_tar(std::unique_ptr<llvm::Module> M,
                                 StringRef TarFile, bool Verbose,
                                 bool StripSourceInfo) {
   StringRef BasePath = "bits"; // TODO: something useful for this?

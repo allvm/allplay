@@ -2,8 +2,8 @@
 
 #include "boost_progress.h"
 
-#include "allvm/BCDB.h"
-#include "allvm/ModuleFlags.h"
+#include "allvm-analysis/BCDB.h"
+#include "allvm-analysis/ModuleFlags.h"
 
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instructions.h>
@@ -17,10 +17,11 @@
 
 #include <algorithm>
 #include <functional>
-
-using namespace llvm;
-using namespace allvm;
 #include <numeric>
+
+using namespace allvm_analysis;
+using namespace allvm;
+using namespace llvm;
 
 namespace {
 

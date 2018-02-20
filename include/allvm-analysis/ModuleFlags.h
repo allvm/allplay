@@ -1,5 +1,5 @@
-#ifndef ALLVM_MODULEFLAGS_H
-#define ALLVM_MODULEFLAGS_H
+#ifndef ALLVM_ANALYSIS_MODULEFLAGS_H
+#define ALLVM_ANALYSIS_MODULEFLAGS_H
 
 #include <llvm/ADT/StringRef.h>
 #include <llvm/IR/Metadata.h>
@@ -7,7 +7,7 @@
 
 #include <vector>
 
-namespace allvm {
+namespace allvm_analysis {
 
 static const llvm::StringRef MF_ALLVM_SOURCE = "ALLVM Source";
 static const llvm::StringRef MF_WLLVM_SOURCE = "WLLVM Source";
@@ -63,6 +63,6 @@ inline llvm::StringRef getALLVMSourceString(llvm::Function *F) {
   return getALLVMSourceString(F->getParent());
 }
 
-} // end namespace allvm
+} // end namespace allvm_analysis
 
-#endif // ALLVM_MODULEFLAGS_H
+#endif // ALLVM_ANALYSIS_MODULEFLAGS_H

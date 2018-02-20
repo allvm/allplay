@@ -7,14 +7,14 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file defines the function allvm::SplitModule, which splits a module
-// into multiple linkable partitions. It can be used to implement parallel code
-// generation for link-time optimization.
+// This file defines the function allvm_analysis::SplitModule, which splits a
+// module into multiple linkable partitions. It can be used to implement
+// parallel code generation for link-time optimization.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef ALLVM_TRANSFORMS_UTILS_SPLITMODULE_H
-#define ALLVM_TRANSFORMS_UTILS_SPLITMODULE_H
+#ifndef ALLVM_ANALYSIS_TRANSFORMS_UTILS_SPLITMODULE_H
+#define ALLVM_ANALYSIS_TRANSFORMS_UTILS_SPLITMODULE_H
 
 #include "llvm/ADT/STLExtras.h"
 #include <memory>
@@ -26,7 +26,7 @@ class StringRef;
 
 } // end namespace llvm
 
-namespace allvm {
+namespace allvm_analysis {
 /// Splits the module M into N linkable partitions. The function ModuleCallback
 /// is called N times passing each individual partition as the MPart argument.
 ///
@@ -42,6 +42,6 @@ void SplitModule(std::unique_ptr<llvm::Module> M, unsigned N,
                      ModuleCallback,
                  bool PreserveLocals = false);
 
-} // end namespace allvm
+} // end namespace allvm_analysis
 
-#endif // ALLVM_TRANSFORMS_UTILS_SPLITMODULE_H
+#endif // ALLVM_ANALYSIS_TRANSFORMS_UTILS_SPLITMODULE_H

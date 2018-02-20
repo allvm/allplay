@@ -10,7 +10,7 @@
 
 #include <vector>
 
-namespace allvm {
+namespace allvm_analysis {
 
 class StringGraph {
   using VertexID = size_t;
@@ -70,6 +70,6 @@ private:
   std::string stringify(llvm::ArrayRef<StringAttr> attrs);
 };
 
-} // end namespace allvm
+} // end namespace allvm_analysis
 
 #endif // ALLPLAY_STRINGGRAPH_H

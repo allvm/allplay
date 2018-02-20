@@ -10,9 +10,10 @@
 
 #include "ForEachFile.h"
 
-#include "allvm/BCDB.h"
-#include "allvm/ModuleFlags.h"
-#include "allvm/ResourcePaths.h"
+#include "allvm-analysis/BCDB.h"
+#include "allvm-analysis/ModuleFlags.h"
+
+#include <allvm/ResourcePaths.h>
 
 #include <llvm/ADT/DenseSet.h>
 #include <llvm/ADT/StringRef.h>
@@ -26,6 +27,7 @@
 // UniqueID doesn't work in DenseSet
 #include <unordered_set>
 
+using namespace allvm_analysis;
 using namespace allvm;
 using namespace llvm;
 

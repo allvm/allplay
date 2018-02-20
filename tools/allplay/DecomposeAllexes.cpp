@@ -3,8 +3,9 @@
 #include "boost_progress.h"
 #include "subcommand-registry.h"
 
-#include "allvm/BCDB.h"
-#include "allvm/ExitOnError.h"
+#include "allvm-analysis/BCDB.h"
+
+#include <allvm/ExitOnError.h>
 
 #include <llvm/ADT/StringExtras.h>
 #include <llvm/Bitcode/BitcodeReader.h>
@@ -29,6 +30,7 @@
 #include <pthread.h>
 #include <vector>
 
+using namespace allvm_analysis;
 using namespace allvm;
 using namespace llvm;
 

@@ -6,7 +6,7 @@
 #include <llvm/IR/Module.h>
 #include <llvm/Support/Error.h>
 
-namespace allvm {
+namespace allvm_analysis {
 
 llvm::Error
 decompose(std::unique_ptr<llvm::Module> M,
@@ -28,6 +28,6 @@ llvm::Error decompose_into_tar(std::unique_ptr<llvm::Module> M,
                                llvm::StringRef TarFile, bool Verbose = false,
                                bool StripSourceInfo = false);
 
-} // end namespace allvm
+} // end namespace allvm_analysis
 
 #endif // ALLPLAY_DECOMPOSE_H

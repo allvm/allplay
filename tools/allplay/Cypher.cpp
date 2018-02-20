@@ -1,13 +1,14 @@
 #include "subcommand-registry.h"
 
-#include "allvm/BCDB.h"
-#include "allvm/ModuleFlags.h"
+#include "allvm-analysis/BCDB.h"
+#include "allvm-analysis/ModuleFlags.h"
 
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/ToolOutputFile.h>
 
-using namespace llvm;
+using namespace allvm_analysis;
 using namespace allvm;
+using namespace llvm;
 
 namespace {
 

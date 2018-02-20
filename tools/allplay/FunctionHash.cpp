@@ -3,8 +3,8 @@
 #include "StringGraph.h"
 #include "boost_progress.h"
 
-#include "allvm/BCDB.h"
-#include "allvm/ModuleFlags.h"
+#include "allvm-analysis/BCDB.h"
+#include "allvm-analysis/ModuleFlags.h"
 
 #include <llvm/ADT/DenseMap.h>
 #include <llvm/ADT/SmallVector.h>
@@ -27,8 +27,9 @@
 #include <functional>
 #include <numeric>
 
-using namespace llvm;
+using namespace allvm_analysis;
 using namespace allvm;
+using namespace llvm;
 
 namespace {
 

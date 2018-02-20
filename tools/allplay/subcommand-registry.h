@@ -1,12 +1,12 @@
 #ifndef SUBCOMMAND_REGISTRY_H
 #define SUBCOMMAND_REGISTRY_H
 
-#include "allvm/ResourcePaths.h"
+#include <allvm/ResourcePaths.h>
 
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/Error.h>
 
-namespace allvm {
+namespace allvm_analysis {
 
 // XXX: Taken from llvm-xray's source!
 
@@ -16,12 +16,12 @@ namespace allvm {
 
 struct CommandRegistration {
   CommandRegistration(llvm::cl::SubCommand *SC,
-                      std::function<llvm::Error(ResourcePaths &)> Command);
+                      std::function<llvm::Error(allvm::ResourcePaths &)> Command);
 };
 
 // Requires that |SC| is not null and has an associated function to it.
-std::function<llvm::Error(ResourcePaths &)> dispatch(llvm::cl::SubCommand *SC);
+std::function<llvm::Error(allvm::ResourcePaths &)> dispatch(llvm::cl::SubCommand *SC);
 
-} // end namespace allvm
+} // end namespace allvm_analysis
 
 #endif // SUBCOMMAND_REGISTRY_H

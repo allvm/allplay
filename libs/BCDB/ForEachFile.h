@@ -20,7 +20,7 @@
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Path.h>
 
-namespace allvm {
+namespace allvm_analysis {
 
 typedef std::function<llvm::Error(llvm::StringRef)> PathCallbackT;
 
@@ -77,11 +77,11 @@ static inline llvm::Error foreach_file_in_directory(const llvm::Twine &Path,
 }
 
 static inline PathCallbackT AllexeCallback(
-    std::function<llvm::Error(std::unique_ptr<Allexe>, llvm::StringRef File)>
+    std::function<llvm::Error(std::unique_ptr<allvm::Allexe>, llvm::StringRef File)>
         Callback,
-    ResourcePaths &RP) {
+    allvm::ResourcePaths &RP) {
   return [=](llvm::StringRef File) -> llvm::Error {
-    auto MaybeAllexe = Allexe::openForReading(File, RP);
+    auto MaybeAllexe = allvm::Allexe::openForReading(File, RP);
     if (MaybeAllexe) {
       if (auto Err = Callback(std::move(*MaybeAllexe), File))
         return Err;
@@ -98,6 +98,6 @@ static auto foreach_allexe = std::bind(
 
 // TODO: Add similar for WLLVMFile, but in separate header
 
-} // end namespace allvm
+} // end namespace allvm_analysis
 
 #endif // ALLVM_FOREACH_FILE_H

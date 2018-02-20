@@ -16,8 +16,9 @@
 #include "llvm/Support/ManagedStatic.h"
 #include <unordered_map>
 
-using namespace llvm;
+using namespace allvm_analysis;
 using namespace allvm;
+using namespace llvm;
 
 namespace {
 
@@ -27,7 +28,7 @@ ManagedStatic<std::unordered_map<cl::SubCommand *, HandlerType>> Commands;
 
 } // end anonymous namespace
 
-namespace allvm {
+namespace allvm_analysis {
 
 CommandRegistration::CommandRegistration(cl::SubCommand *SC,
                                          HandlerType Command) {
@@ -44,4 +45,4 @@ HandlerType dispatch(cl::SubCommand *SC) {
   return It->second;
 }
 
-} // end namespace allvm
+} // end namespace allvm_analysis

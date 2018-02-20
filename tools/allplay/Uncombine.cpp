@@ -8,6 +8,7 @@
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/raw_ostream.h>
 
+using namespace allvm_analysis;
 using namespace allvm;
 using namespace llvm;
 

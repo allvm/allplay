@@ -1,7 +1,8 @@
-#include "allvm/BCDB.h"
+#include "allvm-analysis/BCDB.h"
 
 #include <llvm/Support/OnDiskHashTable.h>
 
+using namespace allvm_analysis;
 using namespace allvm;
 using namespace llvm;
 

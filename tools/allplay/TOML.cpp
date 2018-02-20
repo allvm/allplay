@@ -4,8 +4,9 @@
 #define CPPTOML_USE_MAP
 #include "cpptoml.h"
 
-#include "allvm/BCDB.h"
+#include "allvm-analysis/BCDB.h"
 
+using namespace allvm_analysis;
 using namespace allvm;
 using namespace llvm;
 

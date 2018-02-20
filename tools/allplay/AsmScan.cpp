@@ -6,7 +6,7 @@
 #define CPPTOML_USE_MAP
 #include "cpptoml.h"
 
-#include "allvm/BCDB.h"
+#include "allvm-analysis/BCDB.h"
 
 #include <llvm/ADT/DenseSet.h>
 #include <llvm/IR/CallSite.h>
@@ -17,6 +17,7 @@
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_ostream.h>
 
+using namespace allvm_analysis;
 using namespace allvm;
 using namespace llvm;
 

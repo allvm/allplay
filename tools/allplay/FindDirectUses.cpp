@@ -4,7 +4,7 @@
 #define CPPTOML_USE_MAP
 #include "cpptoml.h"
 
-#include "allvm/BCDB.h"
+#include "allvm-analysis/BCDB.h"
 
 #include <llvm/ADT/DenseMap.h>
 #include <llvm/ADT/DenseSet.h>
@@ -17,6 +17,7 @@
 
 #include <range/v3/all.hpp>
 
+using namespace allvm_analysis;
 using namespace allvm;
 using namespace llvm;
 

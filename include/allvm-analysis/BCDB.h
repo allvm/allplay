@@ -8,8 +8,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef ALLVM_BCDB_H
-#define ALLVM_BCDB_H
+#ifndef ALLVM_ANALYSIS_BCDB_H
+#define ALLVM_ANALYSIS_BCDB_H
 
 #include <allvm/Allexe.h>
 
@@ -22,7 +22,7 @@
 
 #include <vector>
 
-namespace allvm {
+namespace allvm_analysis {
 
 struct ModuleInfo {
   uint32_t ModuleCRC;
@@ -32,9 +32,9 @@ struct ModuleInfo {
 class BCDB {
 public:
   static llvm::Expected<std::unique_ptr<BCDB>>
-  loadFromAllexesIn(llvm::StringRef InputDirectory, ResourcePaths &RP);
+  loadFromAllexesIn(llvm::StringRef InputDirectory, allvm::ResourcePaths &RP);
   static llvm::Expected<std::unique_ptr<BCDB>>
-  loadFromBitcodeIn(llvm::StringRef InputDirectory, ResourcePaths &RP);
+  loadFromBitcodeIn(llvm::StringRef InputDirectory, allvm::ResourcePaths &RP);
 
   auto begin() const { return Modules.begin(); }
   auto end() const { return Modules.end(); }
@@ -70,6 +70,6 @@ private:
   std::vector<AllexeDesc> Allexes;
 };
 
-} // end namespace allvm
+} // end namespace allvm_analysis
 
-#endif // ALLVM_BCDB_H
+#endif // ALLVM_ANALYSIS_BCDB_H
