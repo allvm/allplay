@@ -1,6 +1,6 @@
 {
 nixpkgs ? import ./nix/fetch-nixpkgs.nix,
-allvm-tools-src ? builtins.fetchGit { url = ./.; ref = "master"; },
+allvm-tools-src ? (builtins.fetchGit https://github.com/allvm/allvm-tools),
 allvm-tools ? (import allvm-tools-src {}).allvm-tools-clang
 }:
 
