@@ -24,7 +24,7 @@ let
 in
 
 stdenv.mkDerivation {
-  name = "allvm-tools-analysis-git-${gitshort}";
+  name = "allvm-analysis-tools-git-${gitshort}";
   version = gitshort;
 
   src = builtins.filterSource sourceFilter ./..;
