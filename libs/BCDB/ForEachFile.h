@@ -76,10 +76,11 @@ static inline llvm::Error foreach_file_in_directory(const llvm::Twine &Path,
   return llvm::errorCodeToError(EC);
 }
 
-static inline PathCallbackT AllexeCallback(
-    std::function<llvm::Error(std::unique_ptr<allvm::Allexe>, llvm::StringRef File)>
-        Callback,
-    allvm::ResourcePaths &RP) {
+static inline PathCallbackT
+AllexeCallback(std::function<llvm::Error(std::unique_ptr<allvm::Allexe>,
+                                         llvm::StringRef File)>
+                   Callback,
+               allvm::ResourcePaths &RP) {
   return [=](llvm::StringRef File) -> llvm::Error {
     auto MaybeAllexe = allvm::Allexe::openForReading(File, RP);
     if (MaybeAllexe) {

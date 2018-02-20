@@ -15,12 +15,14 @@ namespace allvm_analysis {
 // registered to a given |SC|.
 
 struct CommandRegistration {
-  CommandRegistration(llvm::cl::SubCommand *SC,
-                      std::function<llvm::Error(allvm::ResourcePaths &)> Command);
+  CommandRegistration(
+      llvm::cl::SubCommand *SC,
+      std::function<llvm::Error(allvm::ResourcePaths &)> Command);
 };
 
 // Requires that |SC| is not null and has an associated function to it.
-std::function<llvm::Error(allvm::ResourcePaths &)> dispatch(llvm::cl::SubCommand *SC);
+std::function<llvm::Error(allvm::ResourcePaths &)>
+dispatch(llvm::cl::SubCommand *SC);
 
 } // end namespace allvm_analysis
 

@@ -3,8 +3,8 @@
 #include "boost_progress.h"
 #include "subcommand-registry.h"
 
-#include "allvm-analysis/SplitModule.h"
 #include "allvm-analysis/ModuleFlags.h"
+#include "allvm-analysis/SplitModule.h"
 
 #include <llvm/ADT/StringExtras.h>
 #include <llvm/Bitcode/BitcodeReader.h>
@@ -162,7 +162,8 @@ Error allvm_analysis::decompose(
       size_t Empty = 0;
       size_t Count = 0;
       size_t Before = ModQ.size();
-      auto SplitFn = LLVMSplitModule ? llvm::SplitModule : allvm_analysis::SplitModule;
+      auto SplitFn =
+          LLVMSplitModule ? llvm::SplitModule : allvm_analysis::SplitModule;
       SplitFn(std::move(CurM), SplitFactor,
               [&](std::unique_ptr<Module> MPart) {
                 removeDeadGlobalDecls(*MPart);
@@ -256,7 +257,7 @@ Error allvm_analysis::decompose(
 }
 
 Error allvm_analysis::decompose_into_dir(StringRef BCFile, StringRef OutDir,
-                                bool Verbose, bool StripSourceInfo) {
+                                         bool Verbose, bool StripSourceInfo) {
   LLVMContext C;
   SMDiagnostic Diag;
   auto M = parseIRFile(BCFile, Diag, C);
@@ -270,8 +271,8 @@ Error allvm_analysis::decompose_into_dir(StringRef BCFile, StringRef OutDir,
 }
 
 Error allvm_analysis::decompose_into_dir(std::unique_ptr<llvm::Module> M,
-                                StringRef OutDir, bool Verbose,
-                                bool StripSourceInfo) {
+                                         StringRef OutDir, bool Verbose,
+                                         bool StripSourceInfo) {
   if (auto EC = sys::fs::create_directories(OutDir))
     return errorCodeToError(EC);
 
@@ -284,7 +285,7 @@ Error allvm_analysis::decompose_into_dir(std::unique_ptr<llvm::Module> M,
 }
 
 Error allvm_analysis::decompose_into_tar(StringRef BCFile, StringRef OutDir,
-                                bool Verbose, bool StripSourceInfo) {
+                                         bool Verbose, bool StripSourceInfo) {
   LLVMContext C;
   SMDiagnostic Diag;
   auto M = parseIRFile(BCFile, Diag, C);
@@ -298,8 +299,8 @@ Error allvm_analysis::decompose_into_tar(StringRef BCFile, StringRef OutDir,
 }
 
 Error allvm_analysis::decompose_into_tar(std::unique_ptr<llvm::Module> M,
-                                StringRef TarFile, bool Verbose,
-                                bool StripSourceInfo) {
+                                         StringRef TarFile, bool Verbose,
+                                         bool StripSourceInfo) {
   StringRef BasePath = "bits"; // TODO: something useful for this?
   auto TW = TarWriter::create(TarFile, BasePath);
   if (!TW)
