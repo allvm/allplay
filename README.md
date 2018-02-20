@@ -1,4 +1,13 @@
-# ALLVM Analysis
+# allplay tool: ALLVM Analysis Prototyping
+
+## What is this?
+
+A few "analysis" tools implemented
+as subcommands of a new allvm tool
+called "allplay".
+
+These tools are very experimental
+and probably entirely unsupported.
 
 ## Contact
 
@@ -9,11 +18,3 @@
 **Website**: http://allvm.org
 
 
-## What is this?
-
-A few "analysis" tools implemented
-as subcommands of a new allvm tool
-called "allplay".
-
-These tools are very experimental
-and probably entirely supported.
