@@ -4,6 +4,8 @@
  * @date May 2013
  */
 
+#pragma clang system_header
+
 #ifndef _CPPTOML_H_
 #define _CPPTOML_H_
 
@@ -2994,6 +2996,9 @@ class toml_writer
         {
             if (i > 0)
                 write(", ");
+            endline();
+            indent();
+            write(indent_);
 
             if (a.get()[i]->is_array())
             {
@@ -3003,6 +3008,11 @@ class toml_writer
             {
                 a.get()[i]->accept(*this, true);
             }
+        }
+
+        if (a.get().size() > 0) {
+          endline();
+          indent();
         }
 
         write("]");
