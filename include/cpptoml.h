@@ -4,8 +4,6 @@
  * @date May 2013
  */
 
-#pragma clang system_header
-
 #ifndef _CPPTOML_H_
 #define _CPPTOML_H_
 
@@ -158,9 +156,8 @@ struct offset_datetime : local_datetime, zone_offset
     }
 };
 
-using datetime
-    CPPTOML_DEPRECATED("datetime has been renamed to offset_datetime")
-    = offset_datetime;
+CPPTOML_DEPRECATED("datetime has been renamed to offset_datetime")
+typedef offset_datetime datetime;
 
 class fill_guard
 {
@@ -404,6 +401,10 @@ inline std::shared_ptr<table_array> make_table_array();
 class base : public std::enable_shared_from_this<base>
 {
   public:
+    virtual ~base() = default;
+
+    virtual std::shared_ptr<base> clone() const = 0;
+
     /**
      * Determines if the given TOML element is a value.
      */
@@ -502,6 +503,8 @@ class value : public base
 
   public:
     static_assert(valid_value<T>::value, "invalid value type");
+
+    std::shared_ptr<base> clone() const override;
 
     value(const make_shared_enabler&, const T& val) : value(val)
     {
@@ -614,10 +617,14 @@ class array : public base
   public:
     friend std::shared_ptr<array> make_array();
 
+    std::shared_ptr<base> clone() const override;
+
     virtual bool is_array() const override
     {
         return true;
     }
+
+    using size_type = std::size_t;
 
     /**
      * arrays can be iterated over
@@ -822,6 +829,14 @@ class array : public base
         values_.clear();
     }
 
+    /**
+     * Reserve space for n values.
+     */
+    void reserve(size_type n)
+    {
+        values_.reserve(n);
+    }
+
   private:
     array() = default;
 
@@ -886,6 +901,10 @@ class table_array : public base
     friend std::shared_ptr<table_array> make_table_array();
 
   public:
+    std::shared_ptr<base> clone() const override;
+
+    using size_type = std::size_t;
+
     /**
      * arrays can be iterated over
      */
@@ -961,6 +980,14 @@ class table_array : public base
     void clear()
     {
         array_.clear();
+    }
+
+    /**
+     * Reserve space for n tables.
+     */
+    void reserve(size_type n)
+    {
+        array_.reserve(n);
     }
 
   private:
@@ -1068,6 +1095,8 @@ class table : public base
   public:
     friend class table_array;
     friend std::shared_ptr<table> make_table();
+
+    std::shared_ptr<base> clone() const override;
 
     /**
      * tables can be iterated over.
@@ -1442,7 +1471,7 @@ template <>
 inline typename array_of_trait<array>::return_type
 table::get_qualified_array_of<array>(const std::string& key) const
 {
-    if (auto v = get_array(key))
+    if (auto v = get_array_qualified(key))
     {
         std::vector<std::shared_ptr<array>> result;
         result.reserve(v->get().size());
@@ -1478,6 +1507,38 @@ template <>
 inline std::shared_ptr<table> make_element<table>()
 {
     return make_table();
+}
+
+template <class T>
+std::shared_ptr<base> value<T>::clone() const
+{
+    return make_value(data_);
+}
+
+inline std::shared_ptr<base> array::clone() const
+{
+    auto result = make_array();
+    result->reserve(values_.size());
+    for (const auto& ptr : values_)
+        result->values_.push_back(ptr->clone());
+    return result;
+}
+
+inline std::shared_ptr<base> table_array::clone() const
+{
+    auto result = make_table_array();
+    result->reserve(array_.size());
+    for (const auto& ptr : array_)
+        result->array_.push_back(ptr->clone()->as_table());
+    return result;
+}
+
+inline std::shared_ptr<base> table::clone() const
+{
+    auto result = make_table();
+    for (const auto& pr : map_)
+        result->insert(pr.first, pr.second->clone());
+    return result;
 }
 
 /**
@@ -1560,6 +1621,41 @@ consumer<OnError> make_consumer(std::string::iterator& it,
     return consumer<OnError>(it, end, std::forward<OnError>(on_error));
 }
 
+// replacement for std::getline to handle incorrectly line-ended files
+// https://stackoverflow.com/questions/6089231/getting-std-ifstream-to-handle-lf-cr-and-crlf
+namespace detail
+{
+inline std::istream& getline(std::istream& input, std::string& line)
+{
+    line.clear();
+
+    std::istream::sentry sentry{input, true};
+    auto sb = input.rdbuf();
+
+    while (true)
+    {
+        auto c = sb->sbumpc();
+        if (c == '\r')
+        {
+            if (sb->sgetc() == '\n')
+                c = sb->sbumpc();
+        }
+
+        if (c == '\n')
+            return input;
+
+        if (c == std::istream::traits_type::eof())
+        {
+            if (line.empty())
+                input.setstate(std::ios::eofbit);
+            return input;
+        }
+
+        line.push_back(static_cast<char>(c));
+    }
+}
+}
+
 /**
  * The parser class.
  */
@@ -1571,6 +1667,7 @@ class parser
      */
     parser(std::istream& stream) : input_(stream)
     {
+        // nothing
     }
 
     parser& operator=(const parser& parser) = delete;
@@ -1585,7 +1682,7 @@ class parser
 
         table* curr_table = root.get();
 
-        while (std::getline(input_, line_))
+        while (detail::getline(input_, line_))
         {
             line_number_++;
             auto it = line_.begin();
@@ -1678,6 +1775,10 @@ class parser
                 ++it;
             consume_whitespace(it, end);
         }
+
+        if (it == end)
+            throw_parse_exception(
+                "Unterminated table declaration; did you forget a ']'?");
 
         // table already existed
         if (!inserted)
@@ -1802,7 +1903,7 @@ class parser
         auto key = parse_key(it, end, [](char c) { return c == '='; });
         if (curr_table->contains(key))
             throw_parse_exception("Key " + key + " already present");
-        if (*it != '=')
+        if (it == end || *it != '=')
             throw_parse_exception("Value must follow after a '='");
         ++it;
         consume_whitespace(it, end);
@@ -2059,7 +2160,7 @@ class parser
             return ret;
 
         // start eating lines
-        while (std::getline(input_, line_))
+        while (detail::getline(input_, line_))
         {
             ++line_number_;
 
@@ -2390,7 +2491,7 @@ class parser
     std::string::iterator find_end_of_number(std::string::iterator it,
                                              std::string::iterator end)
     {
-        return std::find_if(it, end, [this](char c) {
+        return std::find_if(it, end, [](char c) {
             return !is_number(c) && c != '_' && c != '.' && c != 'e' && c != 'E'
                    && c != '-' && c != '+';
         });
@@ -2399,7 +2500,7 @@ class parser
     std::string::iterator find_end_of_date(std::string::iterator it,
                                            std::string::iterator end)
     {
-        return std::find_if(it, end, [this](char c) {
+        return std::find_if(it, end, [](char c) {
             return !is_number(c) && c != 'T' && c != 'Z' && c != ':' && c != '-'
                    && c != '+' && c != '.';
         });
@@ -2408,7 +2509,7 @@ class parser
     std::string::iterator find_end_of_time(std::string::iterator it,
                                            std::string::iterator end)
     {
-        return std::find_if(it, end, [this](char c) {
+        return std::find_if(it, end, [](char c) {
             return !is_number(c) && c != ':' && c != '.';
         });
     }
@@ -2641,7 +2742,7 @@ class parser
         consume_whitespace(start, end);
         while (start == end || *start == '#')
         {
-            if (!std::getline(input_, line_))
+            if (!detail::getline(input_, line_))
                 throw_parse_exception("Unclosed array");
             line_number_++;
             start = line_.begin();
@@ -2893,9 +2994,6 @@ class toml_writer
         {
             if (i > 0)
                 write(", ");
-            endline();
-            indent();
-            write(indent_);
 
             if (a.get()[i]->is_array())
             {
@@ -2905,11 +3003,6 @@ class toml_writer
             {
                 a.get()[i]->accept(*this, true);
             }
-        }
-
-        if (a.get().size() > 0) {
-          endline();
-          indent();
         }
 
         write("]");
