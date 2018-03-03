@@ -17,11 +17,6 @@ in stdenv.mkDerivation rec {
 
   cmakeFlags = [ "-DRANGE_V3_NO_HEADER_CHECK=1" ];
 
-  # Warning about recursive macro in musl headers is not helpful
-  patchPhase = stdenv.lib.optionalString isMusl ''
-    sed -i 's,-Werror,,g' CMakeLists.txt
-  '';
-
   doCheck = true;
 
   checkTarget = "test";
