@@ -1,8 +1,6 @@
 { stdenv, cmake, fetchFromGitHub }:
 
-let
-  isMusl = stdenv.hostPlatform.isMusl or false;
-in stdenv.mkDerivation rec {
+stdenv.mkDerivation rec {
   name = "range-v3-${version}";
   version = "0.3.5";
 
