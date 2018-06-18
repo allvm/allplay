@@ -1,23 +1,28 @@
-{ stdenv, cmake, fetchFromGitHub }:
+{ stdenv, fetchFromGitHub, cmake }:
 
 stdenv.mkDerivation rec {
   name = "range-v3-${version}";
-  version = "0.3.5";
+  version = "0.3.6";
 
   src = fetchFromGitHub {
     owner = "ericniebler";
     repo = "range-v3";
     rev = version;
-    sha256 = "00bwm7n3wyf49xpr7zjhm08dzwx3lwibgafi6isvfls3dhk1m4kp";
+    sha256 = "050h9pa57kd57l73njxpjb331snybddl29x2vpy5ycygvqiw8kcp";
   };
 
-  buildInputs = [ cmake ];
-
-  cmakeFlags = [ "-DRANGE_V3_NO_HEADER_CHECK=1" ];
+  nativeBuildInputs = [ cmake ];
 
   doCheck = true;
-
   checkTarget = "test";
 
   enableParallelBuilding = true;
+
+  meta = with stdenv.lib; {
+    description = "Experimental range library for C++11/14/17";
+    homepage = https://github.com/ericniebler/range-v3;
+    license = licenses.boost;
+    platforms = platforms.all;
+    maintainers = with maintainers; [ dtzWill /* xwvvvvwx */ ];
+  };
 }
