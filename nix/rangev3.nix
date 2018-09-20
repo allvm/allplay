@@ -14,9 +14,17 @@ stdenv.mkDerivation rec {
   nativeBuildInputs = [ cmake ];
 
   # Warning about recursive macro in musl headers is not helpful
-  patchPhase = stdenv.lib.optionalString (stdenv.hostPlatform.libc == "musl") ''
-    sed -i '/-Werror/d' cmake/ranges_flags.cmake
-  '';
+  CXXFLAGS = [ "-Wno-disabled-macro-expansion" ];
+
+  cmakeFlags = [
+    "-DRANGE_V3_PERF=OFF"
+    "-DRANGE_V3_EXAMPLES=OFF"
+    "-DRANGE_V3_DOCS=OFF"
+    "-DRANGES_NATIVE=OFF"
+
+    "-DRANGE_V3_TESTS=ON"
+    "-DRANGE_V3_HEADER_CHECKS=ON"
+  ];
 
   doCheck = true;
   checkTarget = "test";
