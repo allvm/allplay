@@ -4,7 +4,7 @@ allvm-tools-src ? (builtins.fetchGit https://github.com/allvm/allvm-tools),
 allvm-tools ? (import allvm-tools-src {}).allvm-tools
 }:
 
-with import nixpkgs {};
+with (import nixpkgs {}).pkgsMusl;
 {
   allvm-analysis = callPackage ./nix/build.nix {
     inherit allvm-tools;
