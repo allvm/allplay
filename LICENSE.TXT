@@ -4,7 +4,7 @@ ALLVM Release License
 University of Illinois/NCSA
 Open Source License
 
-Copyright (c) 2016-2018 University of Illinois at Urbana-Champaign.
+Copyright (c) 2016-2019 University of Illinois at Urbana-Champaign.
 All rights reserved.
 
 Developed by:
@@ -59,9 +59,20 @@ Software.
 The following pieces of software have additional or alternate copyrights,
 licenses, and/or restrictions:
 
-Program             Directory
--------             ---------
-libunwind           libs/none/unwind
-libzip              libs/archive-rw
-llvm-lit            utils/lit
-musl                libs/none/musl
+Program             Path                                        Note
+-------             ----                                        ----
+cpptoml             include/cpptoml.h
+range-v3            nix/rangev3.nix                             (indirectly)
+boost_progress      tools/allplay/boost_progress.h              (adapted for LLVM's raw_ostream)
+cmake-modules       cmake/GetGitRevisionDescription.cmake{,.in} https://github.com/rpavlik/cmake-modules
+
+The following files are from LLVM and keep that license
+despite any local modifications or additions:
+
+Filename
+--------
+include/allvm-analysis/SplitModule.h
+tools/allplay/SplitModule.cpp
+tools/allplay/subcommand-registry.h
+tools/allplay/subcommand-registry.cpp
+
