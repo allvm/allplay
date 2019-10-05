@@ -59,18 +59,20 @@ Software.
 The following pieces of software have additional or alternate copyrights,
 licenses, and/or restrictions:
 
-Program             Directory
--------             ---------
+Program             Path                                        Note
+-------             ----                                        ----
 cpptoml             include/cpptoml.h
-range-v3            nix/rangev3.nix (indirectly)
-boost_progress      tools/allplay/boost_progress.h (adapted for LLVM's raw_ostream)
+range-v3            nix/rangev3.nix                             (indirectly)
+boost_progress      tools/allplay/boost_progress.h              (adapted for LLVM's raw_ostream)
+cmake-modules       cmake/GetGitRevisionDescription.cmake{,.in} https://github.com/rpavlik/cmake-modules
 
 The following files are from LLVM and keep that license
 despite any local modifications or additions:
 
-Path
-----
+Filename
+--------
 include/allvm-analysis/SplitModule.h
-tools/allplay/subcommand-registry.cpp
 tools/allplay/SplitModule.cpp
+tools/allplay/subcommand-registry.h
+tools/allplay/subcommand-registry.cpp
 
