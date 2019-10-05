@@ -61,7 +61,16 @@ licenses, and/or restrictions:
 
 Program             Directory
 -------             ---------
-libunwind           libs/none/unwind
-libzip              libs/archive-rw
-llvm-lit            utils/lit
-musl                libs/none/musl
+cpptoml             include/cpptoml.h
+range-v3            nix/rangev3.nix (indirectly)
+boost_progress      tools/allplay/boost_progress.h (adapted for LLVM's raw_ostream)
+
+The following files are from LLVM and keep that license
+despite any local modifications or additions:
+
+Path
+----
+include/allvm-analysis/SplitModule.h
+tools/allplay/subcommand-registry.cpp
+tools/allplay/SplitModule.cpp
+
