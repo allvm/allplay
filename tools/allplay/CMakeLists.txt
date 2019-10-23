@@ -36,7 +36,7 @@ add_llvm_tool(allplay
   # Other
   SplitModule.cpp
 )
-target_link_libraries(allplay BCDB liball ResourcePaths)
+target_link_libraries(allplay ABCDB liball ResourcePaths)
 
 install(PROGRAMS csv2sqlite.sh DESTINATION bin)
 

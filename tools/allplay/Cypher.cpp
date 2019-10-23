@@ -1,6 +1,6 @@
 #include "subcommand-registry.h"
 
-#include "allvm-analysis/BCDB.h"
+#include "allvm-analysis/ABCDB.h"
 #include "allvm-analysis/ModuleFlags.h"
 
 #include <llvm/Support/FileSystem.h>
@@ -21,7 +21,7 @@ cl::opt<std::string>
            cl::desc("name of file to write Cypher query for allexe data"),
            cl::sub(Cypher));
 
-Error cypher(BCDB &DB, StringRef Prefix, StringRef OutputFilename) {
+Error cypher(ABCDB &DB, StringRef Prefix, StringRef OutputFilename) {
   std::error_code EC;
   tool_output_file OutFile(OutputFilename, EC, sys::fs::OpenFlags::F_Text);
   if (EC)
@@ -99,7 +99,7 @@ Error cypher(BCDB &DB, StringRef Prefix, StringRef OutputFilename) {
 CommandRegistration Unused(&Cypher, [](ResourcePaths &RP) -> Error {
   errs() << "Scanning " << InputDirectory << "...\n";
 
-  auto ExpDB = BCDB::loadFromAllexesIn(InputDirectory, RP);
+  auto ExpDB = ABCDB::loadFromAllexesIn(InputDirectory, RP);
   if (!ExpDB)
     return ExpDB.takeError();
   auto &DB = *ExpDB;

@@ -6,7 +6,7 @@
 #define CPPTOML_USE_MAP
 #include "cpptoml.h"
 
-#include "allvm-analysis/BCDB.h"
+#include "allvm-analysis/ABCDB.h"
 
 #include <llvm/ADT/DenseSet.h>
 #include <llvm/IR/CallSite.h>
@@ -33,7 +33,7 @@ cl::opt<bool> UseBCScanner("bc-scanner", cl::Optional, cl::init(false),
                            cl::desc("Use BC scanner instead of allexe scanner"),
                            cl::sub(AsmScan));
 
-Error asmScan(BCDB &DB) {
+Error asmScan(ABCDB &DB) {
 
   errs() << "Starting Asm Scan...\n";
 
@@ -147,8 +147,8 @@ Error asmScan(BCDB &DB) {
 CommandRegistration Unused(&AsmScan, [](ResourcePaths &RP) -> Error {
   errs() << "Scanning " << InputDirectory << "...\n";
 
-  auto ExpDB = UseBCScanner ? BCDB::loadFromBitcodeIn(InputDirectory, RP)
-                            : BCDB::loadFromAllexesIn(InputDirectory, RP);
+  auto ExpDB = UseBCScanner ? ABCDB::loadFromBitcodeIn(InputDirectory, RP)
+                            : ABCDB::loadFromAllexesIn(InputDirectory, RP);
   if (!ExpDB)
     return ExpDB.takeError();
   auto &DB = *ExpDB;

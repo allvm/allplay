@@ -1,6 +1,6 @@
 #include "subcommand-registry.h"
 
-#include "allvm-analysis/BCDB.h"
+#include "allvm-analysis/ABCDB.h"
 
 #include <llvm/ADT/DenseSet.h>
 #include <llvm/IRReader/IRReader.h>
@@ -24,9 +24,9 @@ cl::opt<std::string> FuncName(cl::Positional, cl::Required,
                               cl::desc("<name of function>"),
                               cl::sub(FindUses));
 
-Error findUses(BCDB &DB, llvm::StringRef Symbol) {
+Error findUses(ABCDB &DB, llvm::StringRef Symbol) {
 
-  errs() << "Finding uses of '" << Symbol << "' in BCDB...\n";
+  errs() << "Finding uses of '" << Symbol << "' in ABCDB...\n";
 
   errs() << "Err, looking for users of function with that name\n";
 
@@ -89,7 +89,7 @@ Error findUses(BCDB &DB, llvm::StringRef Symbol) {
 
 CommandRegistration Unused(&FindUses, [](ResourcePaths &RP) -> Error {
   errs() << "Loading allexe's from " << InputDirectory << "...\n";
-  auto ExpDB = BCDB::loadFromAllexesIn(InputDirectory, RP);
+  auto ExpDB = ABCDB::loadFromAllexesIn(InputDirectory, RP);
   if (!ExpDB)
     return ExpDB.takeError();
   auto &DB = *ExpDB;

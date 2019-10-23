@@ -12,7 +12,7 @@
 
 #include "StringGraph.h"
 
-#include "allvm-analysis/BCDB.h"
+#include "allvm-analysis/ABCDB.h"
 
 #include <allvm/ResourcePaths.h>
 
@@ -34,7 +34,7 @@ cl::opt<std::string> OutputFilename("o", cl::Required,
 cl::opt<bool> UseClusters("cluster", cl::Optional,
                           cl::desc("Emit nodes in clusters"), cl::sub(Graph));
 
-Error graph(BCDB &DB, StringRef Prefix, StringRef GraphFilename) {
+Error graph(ABCDB &DB, StringRef Prefix, StringRef GraphFilename) {
 
   auto removePrefix = [Prefix](StringRef S) {
     if (S.startswith(Prefix))
@@ -76,7 +76,7 @@ Error graph(BCDB &DB, StringRef Prefix, StringRef GraphFilename) {
 
 CommandRegistration Unused(&Graph, [](ResourcePaths &RP) -> Error {
   errs() << "Loading allexe's from " << InputDirectory << "...\n";
-  auto ExpDB = BCDB::loadFromAllexesIn(InputDirectory, RP);
+  auto ExpDB = ABCDB::loadFromAllexesIn(InputDirectory, RP);
   if (!ExpDB)
     return ExpDB.takeError();
   auto &DB = *ExpDB;

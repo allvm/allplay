@@ -3,7 +3,7 @@
 #include "boost_progress.h"
 #include "subcommand-registry.h"
 
-#include "allvm-analysis/BCDB.h"
+#include "allvm-analysis/ABCDB.h"
 
 #include <allvm/ExitOnError.h>
 
@@ -55,7 +55,7 @@ cl::opt<bool> StripSourceInfo(
 
 std::mutex ProgressMtx;
 
-Error decomposeAllexes(BCDB &DB, ResourcePaths &RP) {
+Error decomposeAllexes(ABCDB &DB, ResourcePaths &RP) {
   StringRef OutBase = "bits";
   unsigned NThreads = Threads;
   if (NThreads == 0)
@@ -129,7 +129,7 @@ Error decomposeAllexes(BCDB &DB, ResourcePaths &RP) {
 
 CommandRegistration Unused(&DecomposeAllexes, [](ResourcePaths &RP) -> Error {
   errs() << "Loading allexe's from " << InputDirectory << "...\n";
-  auto ExpDB = BCDB::loadFromAllexesIn(InputDirectory, RP);
+  auto ExpDB = ABCDB::loadFromAllexesIn(InputDirectory, RP);
   if (!ExpDB)
     return ExpDB.takeError();
   auto &DB = *ExpDB;
