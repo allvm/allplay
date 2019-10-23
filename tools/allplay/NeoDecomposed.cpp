@@ -2,7 +2,7 @@
 
 #include "boost_progress.h"
 
-#include "allvm-analysis/BCDB.h"
+#include "allvm-analysis/ABCDB.h"
 #include "allvm-analysis/ModuleFlags.h"
 
 #include <llvm/IR/Function.h>
@@ -76,7 +76,7 @@ std::unique_ptr<tool_output_file> openFile(StringRef Filename, Error &E) {
   return std::move(*F);
 }
 
-Error neo(BCDB &DB, StringRef Prefix) {
+Error neo(ABCDB &DB, StringRef Prefix) {
   Error E = Error::success();
   auto ModOutFile = openFile(ModOut, E);
   auto FuncOutFile = openFile(FuncOut, E);
@@ -200,7 +200,7 @@ Error neo(BCDB &DB, StringRef Prefix) {
 CommandRegistration Unused(&NeoCSVDecomp, [](ResourcePaths &RP) -> Error {
   errs() << "Scanning " << InputDirectory << "...\n";
 
-  auto ExpDB = BCDB::loadFromBitcodeIn(InputDirectory, RP);
+  auto ExpDB = ABCDB::loadFromBitcodeIn(InputDirectory, RP);
   if (!ExpDB)
     return ExpDB.takeError();
   auto &DB = *ExpDB;

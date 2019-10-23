@@ -1,6 +1,6 @@
 #include "subcommand-registry.h"
 
-#include "allvm-analysis/BCDB.h"
+#include "allvm-analysis/ABCDB.h"
 
 #include <llvm/Bitcode/BitcodeReader.h>
 #include <llvm/Bitcode/BitcodeWriter.h>
@@ -27,7 +27,7 @@ cl::opt<bool> UseBCScanner("bc-scanner", cl::Optional, cl::init(false),
                            cl::desc("Use BC scanner instead of allexe scanner"),
                            cl::sub(Combine));
 
-Error saveCombinedModule(BCDB &DB, StringRef Filename) {
+Error saveCombinedModule(ABCDB &DB, StringRef Filename) {
   errs() << "Creating COMBINED 'Module'..\n";
 
   SmallVector<char, 0> Buffer;
@@ -65,8 +65,8 @@ Error saveCombinedModule(BCDB &DB, StringRef Filename) {
 CommandRegistration Unused(&Combine, [](ResourcePaths &RP) -> Error {
   errs() << "Scanning " << InputDirectory << "...\n";
 
-  auto ExpDB = UseBCScanner ? BCDB::loadFromBitcodeIn(InputDirectory, RP)
-                            : BCDB::loadFromAllexesIn(InputDirectory, RP);
+  auto ExpDB = UseBCScanner ? ABCDB::loadFromBitcodeIn(InputDirectory, RP)
+                            : ABCDB::loadFromAllexesIn(InputDirectory, RP);
   if (!ExpDB)
     return ExpDB.takeError();
   auto &DB = *ExpDB;

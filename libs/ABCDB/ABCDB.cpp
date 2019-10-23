@@ -1,4 +1,4 @@
-//===-- BCDB.cpp ----------------------------------------------------------===//
+//===-- ABCDB.cpp ---------------------------------------------------------===//
 //
 // Author: Will Dietz (WD), wdietz2@uiuc.edu
 //
@@ -10,7 +10,7 @@
 
 #include "ForEachFile.h"
 
-#include "allvm-analysis/BCDB.h"
+#include "allvm-analysis/ABCDB.h"
 #include "allvm-analysis/ModuleFlags.h"
 
 #include <allvm/ResourcePaths.h>
@@ -31,12 +31,12 @@ using namespace allvm_analysis;
 using namespace allvm;
 using namespace llvm;
 
-llvm::Expected<std::unique_ptr<BCDB>>
-BCDB::loadFromAllexesIn(StringRef InputDirectory, ResourcePaths &RP) {
+llvm::Expected<std::unique_ptr<ABCDB>>
+ABCDB::loadFromAllexesIn(StringRef InputDirectory, ResourcePaths &RP) {
 
   // DenseMap<uint32_t, size_t> ModuleMap;
 
-  auto DB = llvm::make_unique<BCDB>();
+  auto DB = llvm::make_unique<ABCDB>();
 
   auto addAllexe = [&](auto A, StringRef F) -> llvm::Error {
 
@@ -107,10 +107,10 @@ template <> struct DenseMapInfo<llvm::sys::fs::UniqueID> {
 };
 } // end namespace llvm
 
-llvm::Expected<std::unique_ptr<BCDB>>
-BCDB::loadFromBitcodeIn(StringRef InputDirectory, ResourcePaths &) {
+llvm::Expected<std::unique_ptr<ABCDB>>
+ABCDB::loadFromBitcodeIn(StringRef InputDirectory, ResourcePaths &) {
   using namespace llvm::sys::fs;
-  auto DB = llvm::make_unique<BCDB>();
+  auto DB = llvm::make_unique<ABCDB>();
 
   // std::unordered_set<UniqueID> BCIDs;
   DenseSet<UniqueID> BCIDs;

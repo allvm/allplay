@@ -1,4 +1,4 @@
-//===-- BCDB.h ------------------------------------------------------------===//
+//===-- ABCDB.h -----------------------------------------------------------===//
 //
 // Author: Will Dietz (WD), wdietz2@uiuc.edu
 //
@@ -8,8 +8,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef ALLVM_ANALYSIS_BCDB_H
-#define ALLVM_ANALYSIS_BCDB_H
+#ifndef ALLVM_ANALYSIS_ABCDB_H
+#define ALLVM_ANALYSIS_ABCDB_H
 
 #include <allvm/Allexe.h>
 
@@ -29,11 +29,11 @@ struct ModuleInfo {
   std::string Filename;
 };
 
-class BCDB {
+class ABCDB {
 public:
-  static llvm::Expected<std::unique_ptr<BCDB>>
+  static llvm::Expected<std::unique_ptr<ABCDB>>
   loadFromAllexesIn(llvm::StringRef InputDirectory, allvm::ResourcePaths &RP);
-  static llvm::Expected<std::unique_ptr<BCDB>>
+  static llvm::Expected<std::unique_ptr<ABCDB>>
   loadFromBitcodeIn(llvm::StringRef InputDirectory, allvm::ResourcePaths &RP);
 
   auto begin() const { return Modules.begin(); }
@@ -47,7 +47,7 @@ public:
 
   auto &getMods() const { return Infos; }
 
-  // BCDB() { C.setDiscardValueNames(true); }
+  // ABCDB() { C.setDiscardValueNames(true); }
 
   llvm::Error writeToDisk(llvm::StringRef Path);
 
@@ -72,4 +72,4 @@ private:
 
 } // end namespace allvm_analysis
 
-#endif // ALLVM_ANALYSIS_BCDB_H
+#endif // ALLVM_ANALYSIS_ABCDB_H

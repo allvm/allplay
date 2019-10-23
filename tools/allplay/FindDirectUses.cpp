@@ -4,7 +4,7 @@
 #define CPPTOML_USE_MAP
 #include "cpptoml.h"
 
-#include "allvm-analysis/BCDB.h"
+#include "allvm-analysis/ABCDB.h"
 
 #include <llvm/ADT/DenseMap.h>
 #include <llvm/ADT/DenseSet.h>
@@ -43,9 +43,9 @@ std::string toStr(const llvm::Value *V) {
 
 using CRC_t = decltype(ModuleInfo::ModuleCRC);
 
-Error findUses(BCDB &DB, llvm::StringRef Symbol) {
+Error findUses(ABCDB &DB, llvm::StringRef Symbol) {
 
-  errs() << "Finding uses of '" << Symbol << "' in BCDB...\n";
+  errs() << "Finding uses of '" << Symbol << "' in ABCDB...\n";
 
   errs() << "Err, looking for users of function with that name\n";
 
@@ -155,7 +155,7 @@ Error findUses(BCDB &DB, llvm::StringRef Symbol) {
 
 CommandRegistration Unused(&FindDirectUses, [](ResourcePaths &RP) -> Error {
   errs() << "Loading allexe's from " << InputDirectory << "...\n";
-  auto ExpDB = BCDB::loadFromAllexesIn(InputDirectory, RP);
+  auto ExpDB = ABCDB::loadFromAllexesIn(InputDirectory, RP);
   if (!ExpDB)
     return ExpDB.takeError();
   auto &DB = *ExpDB;

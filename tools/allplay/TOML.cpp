@@ -4,7 +4,7 @@
 #define CPPTOML_USE_MAP
 #include "cpptoml.h"
 
-#include "allvm-analysis/BCDB.h"
+#include "allvm-analysis/ABCDB.h"
 
 using namespace allvm_analysis;
 using namespace allvm;
@@ -18,7 +18,7 @@ cl::opt<std::string> InputDirectory(cl::Positional, cl::Required,
                                     cl::desc("<input directory to scan>"),
                                     cl::sub(Toml));
 
-Error toml(BCDB &DB) {
+Error toml(ABCDB &DB) {
 
   auto root = cpptoml::make_table();
 
@@ -39,7 +39,7 @@ Error toml(BCDB &DB) {
 
 CommandRegistration Unused(&Toml, [](ResourcePaths &RP) -> Error {
   errs() << "Loading allexe's from " << InputDirectory << "...\n";
-  auto ExpDB = BCDB::loadFromAllexesIn(InputDirectory, RP);
+  auto ExpDB = ABCDB::loadFromAllexesIn(InputDirectory, RP);
   if (!ExpDB)
     return ExpDB.takeError();
   auto &DB = *ExpDB;

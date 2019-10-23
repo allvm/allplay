@@ -3,7 +3,7 @@
 #include "StringGraph.h"
 #include "boost_progress.h"
 
-#include "allvm-analysis/BCDB.h"
+#include "allvm-analysis/ABCDB.h"
 #include "allvm-analysis/ModuleFlags.h"
 
 #include <llvm/ADT/DenseMap.h>
@@ -176,7 +176,7 @@ auto compute_size(size_t count) {
   return Twine(MinFontSize + size_addend(count)).str();
 }
 
-Error functionHash(BCDB &DB) {
+Error functionHash(ABCDB &DB) {
 
   errs() << "Materializing and computing function hashes...\n";
   size_t totalInsts = 0;
@@ -452,8 +452,8 @@ Error functionHash(BCDB &DB) {
 CommandRegistration Unused(&FunctionHashes, [](ResourcePaths &RP) -> Error {
   errs() << "Scanning " << InputDirectory << "...\n";
 
-  auto ExpDB = UseBCScanner ? BCDB::loadFromBitcodeIn(InputDirectory, RP)
-                            : BCDB::loadFromAllexesIn(InputDirectory, RP);
+  auto ExpDB = UseBCScanner ? ABCDB::loadFromBitcodeIn(InputDirectory, RP)
+                            : ABCDB::loadFromAllexesIn(InputDirectory, RP);
   if (!ExpDB)
     return ExpDB.takeError();
   auto &DB = *ExpDB;

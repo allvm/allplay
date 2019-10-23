@@ -1,4 +1,4 @@
-#include "allvm-analysis/BCDB.h"
+#include "allvm-analysis/ABCDB.h"
 
 #include <llvm/Support/OnDiskHashTable.h>
 
@@ -6,7 +6,7 @@ using namespace allvm_analysis;
 using namespace allvm;
 using namespace llvm;
 
-llvm::Error BCDB::writeToDisk(StringRef Path) {
+llvm::Error ABCDB::writeToDisk(StringRef Path) {
 
   errs() << "Path: " << Path << "\n";
 

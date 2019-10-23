@@ -8,7 +8,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "allvm-analysis/BCDB.h"
+#include "allvm-analysis/ABCDB.h"
 #include "allvm-analysis/GitVersion.h"
 
 #include <allvm/Allexe.h>

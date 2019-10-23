@@ -6,9 +6,9 @@ set(LLVM_LINK_COMPONENTS
   Linker
 )
 
-add_llvm_library(BCDB
-  BCDB.cpp
-  BCDBOnDisk.cpp
+add_llvm_library(ABCDB
+  ABCDB.cpp
+  ABCDBOnDisk.cpp
 )
 
 add_definitions(${LLVM_DEFINITIONS})
