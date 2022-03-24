@@ -77,7 +77,7 @@ static inline llvm::Error foreach_file_in_directory(const llvm::Twine &Path,
 }
 
 static inline PathCallbackT
-AllexeCallback(std::function<llvm::Error(std::unique_ptr<allvm::Allexe>,
+AllexeCallback(std::function<llvm::Error(std::unique_ptr<const allvm::Allexe>,
                                          llvm::StringRef File)>
                    Callback,
                allvm::ResourcePaths &RP) {
